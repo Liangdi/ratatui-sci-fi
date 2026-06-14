@@ -1,9 +1,23 @@
-[package]
-name = "ratatui-sci-fi"
+[workspace]
+resolver = "3"
+members = ["crates/ratatui-sci-fi"]
+
+[workspace.package]
 version = "0.1.0"
 edition = "2024"
+license = "MIT"
+authors = ["Liangdi"]
+repository = "https://github.com/Liangdi/ratatui-sci-fi"
+description = "Sci-Fi themed widget collection for the Ratatui TUI ecosystem"
+keywords = ["ratatui", "tui", "sci-fi", "terminal", "widgets"]
+categories = ["command-line-interface"]
 
-[dependencies]
-crossterm = "0.29.0"
+[workspace.dependencies]
 ratatui = "0.30.1"
 ratatui-style = "0.1.2"
+crossterm = "0.29.0"
+rodio = { version = "0.20", default-features = false }
+
+[profile.release]
+lto = true
+codegen-units = 1
