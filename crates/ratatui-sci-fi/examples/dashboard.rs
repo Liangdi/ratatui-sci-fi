@@ -71,7 +71,16 @@ impl Sfx {
 
 type Term = Terminal<CrosstermBackend<Stdout>>;
 
-const THEMES: [Theme; 4] = [Theme::Cyberpunk, Theme::Fallout, Theme::Weyland, Theme::DeepSpace];
+const THEMES: [Theme; 8] = [
+    Theme::Cyberpunk,
+    Theme::Fallout,
+    Theme::Weyland,
+    Theme::DeepSpace,
+    Theme::Bloodmoon,
+    Theme::Nebula,
+    Theme::Arctic,
+    Theme::Sentinel,
+];
 
 /// How many ticks the boot intro plays before the HUD is revealed.
 const BOOT_TICKS: u64 = 120;

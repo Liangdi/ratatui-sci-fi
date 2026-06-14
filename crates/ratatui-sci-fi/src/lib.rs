@@ -1,7 +1,9 @@
 //! # ratatui-sci-fi
 //!
 //! Sci-fi themed widgets for the [Ratatui] TUI ecosystem: cyberpunk neon,
-//! fallout terminals, Weyland consoles, and deep-space HUDs.
+//! fallout terminals, Weyland consoles, deep-space HUDs — plus the bloodmoon
+//! war-room, nebula hologram, arctic cryo-station, and monochrome sentinel
+//! themes.
 //!
 //! [Ratatui]: https://ratatui.rs
 //!

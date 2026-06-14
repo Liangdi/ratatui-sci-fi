@@ -99,3 +99,97 @@ pub const DEEP_SPACE: Palette = Palette {
     warn: Rgb(0xff, 0xc0, 0x3a),
     alert: Rgb(0xff, 0x30, 0x30),
 };
+
+/// Bloodmoon — crimson / ember on near-black red, war-room / alarm console.
+pub const BLOODMOON: Palette = Palette {
+    accent: Rgb(0xff, 0x33, 0x44),
+    accent2: Rgb(0xff, 0x88, 0x55),
+    bg: Rgb(0x0c, 0x02, 0x04),
+    panel: Rgb(0x1c, 0x06, 0x08),
+    fg: Rgb(0xff, 0xe2, 0xdc),
+    muted: Rgb(0x80, 0x2e, 0x32),
+    ok: Rgb(0x66, 0xee, 0x77),
+    warn: Rgb(0xff, 0xc0, 0x3a),
+    alert: Rgb(0xff, 0x22, 0x2a),
+};
+
+/// Nebula — violet / ice-cyan on indigo-black, iridescent holographic UI.
+pub const NEBULA: Palette = Palette {
+    accent: Rgb(0xbb, 0x66, 0xff),
+    accent2: Rgb(0x66, 0xee, 0xff),
+    bg: Rgb(0x07, 0x04, 0x12),
+    panel: Rgb(0x14, 0x0c, 0x24),
+    fg: Rgb(0xee, 0xe6, 0xff),
+    muted: Rgb(0x5e, 0x48, 0x8c),
+    ok: Rgb(0x55, 0xff, 0xaa),
+    warn: Rgb(0xff, 0xcc, 0x44),
+    alert: Rgb(0xff, 0x44, 0x88),
+};
+
+/// Arctic — aqua-teal / pale ice on cold black, cryo-lab / polar station HUD.
+pub const ARCTIC: Palette = Palette {
+    accent: Rgb(0x44, 0xee, 0xdd),
+    accent2: Rgb(0xaa, 0xee, 0xff),
+    bg: Rgb(0x02, 0x0a, 0x0c),
+    panel: Rgb(0x06, 0x16, 0x1a),
+    fg: Rgb(0xe6, 0xf6, 0xff),
+    muted: Rgb(0x2e, 0x60, 0x6c),
+    ok: Rgb(0x44, 0xff, 0x99),
+    warn: Rgb(0xff, 0xd0, 0x44),
+    alert: Rgb(0xff, 0x44, 0x66),
+};
+
+/// Sentinel — monochrome white / silver on charcoal, stealth / minimalist console.
+pub const SENTINEL: Palette = Palette {
+    accent: Rgb(0xe8, 0xe8, 0xec),
+    accent2: Rgb(0x9a, 0x9a, 0xa6),
+    bg: Rgb(0x04, 0x04, 0x06),
+    panel: Rgb(0x10, 0x10, 0x14),
+    fg: Rgb(0xd8, 0xd8, 0xde),
+    muted: Rgb(0x4e, 0x4e, 0x58),
+    ok: Rgb(0x66, 0xee, 0x88),
+    warn: Rgb(0xff, 0xcc, 0x3a),
+    alert: Rgb(0xff, 0x55, 0x55),
+};
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Every shipped palette must expose a distinct signature `accent`, so
+    /// themes never collide visually and a copy/paste typo is caught early.
+    #[test]
+    fn accents_are_pairwise_distinct() {
+        let accents = [
+            CYBERPUNK.accent,
+            FALLOUT.accent,
+            WEYLAND.accent,
+            DEEP_SPACE.accent,
+            BLOODMOON.accent,
+            NEBULA.accent,
+            ARCTIC.accent,
+            SENTINEL.accent,
+        ];
+        for i in 0..accents.len() {
+            for j in (i + 1)..accents.len() {
+                assert_ne!(
+                    accents[i], accents[j],
+                    "duplicate accent between palettes #{i} and #{j}"
+                );
+            }
+        }
+    }
+
+    /// `hex()` must round-trip back to the same `Color` for the token block.
+    #[test]
+    fn hex_roundtrips() {
+        let rgb = BLOODMOON.accent;
+        let parsed = u32::from_str_radix(&rgb.hex()[1..], 16).unwrap();
+        let roundtrip = Rgb(
+            ((parsed >> 16) & 0xff) as u8,
+            ((parsed >> 8) & 0xff) as u8,
+            (parsed & 0xff) as u8,
+        );
+        assert_eq!(rgb, roundtrip);
+    }
+}

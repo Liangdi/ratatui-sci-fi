@@ -16,6 +16,14 @@ use crate::themes::{Palette, Theme};
 /// are used here (`background`, `color`, `var(--…)`, `font-weight: bold`,
 /// `padding: 1`, `border: double`). Widgets may extend this set as they verify
 /// further properties.
+///
+/// The selectors below cover the whole widget roster. Note this is a
+/// **contract** for widgets that adopt the cascade: today every widget still
+/// reads [`Theme::palette`] directly, so these rules reserve the node-type and
+/// state-class names (e.g. `Radar.threat`, `List.selected`) each widget will
+/// query once it migrates to `compute_with`.
+///
+/// [`Theme::palette`]: crate::Theme::palette
 const COMPONENT_CSS: &str = r#"
     Root        { background: var(--bg); }
 
@@ -28,7 +36,7 @@ const COMPONENT_CSS: &str = r#"
     Value.warn  { color: var(--warn); }
     Value.alert { color: var(--alert); }
 
-    Button        { color: var(--accent); }
+    Button        { color: var(--accent); background: var(--bg); }
     Button.focus  { color: var(--bg); background: var(--accent); font-weight: bold; }
 
     Bar         { color: var(--accent); }
@@ -38,6 +46,52 @@ const COMPONENT_CSS: &str = r#"
     Scanline    { color: var(--muted); }
     Cursor      { color: var(--accent); }
     Alert       { color: var(--alert); border: double; }
+
+    /* Energy gauge — segmented energy bar (`Bar` above is the legacy alias). */
+    Gauge        { color: var(--accent); }
+    Gauge.warn   { color: var(--warn); }
+    Gauge.alert  { color: var(--alert); }
+
+    /* Biometric multi-trace chart — grid uses muted, traces cycle tokens. */
+    Biometric         { color: var(--muted); }
+    Biometric.trace0  { color: var(--accent); }
+    Biometric.trace1  { color: var(--accent2); }
+    Biometric.trace2  { color: var(--ok); }
+    Biometric.trace3  { color: var(--warn); }
+    Biometric.trace4  { color: var(--alert); }
+
+    /* Scan list — selected row gets an accent-on-panel highlight. */
+    List          { color: var(--fg); }
+    List.selected { color: var(--accent); background: var(--panel); }
+    List.scan     { color: var(--muted); }
+
+    /* Matrix rain — head uses accent, trail fades toward bg in the widget. */
+    Matrix        { color: var(--accent); }
+
+    /* Glitch text — clean glyphs use fg, corrupted glyphs use alert. */
+    Glitch          { color: var(--fg); }
+    Glitch.corrupt  { color: var(--alert); }
+
+    /* Target lock HUD — brackets use accent, locked state escalates to alert. */
+    Target         { color: var(--accent); }
+    Target.locked  { color: var(--alert); font-weight: bold; }
+
+    /* Sci-fi radar — sweep accent, grid muted, friendly blips ok, threats alert. */
+    Radar         { color: var(--accent); }
+    Radar.grid    { color: var(--muted); }
+    Radar.blip    { color: var(--ok); }
+    Radar.threat  { color: var(--alert); }
+
+    /* Boot sequence — line color follows its status class. */
+    Boot          { color: var(--fg); }
+    Boot.ok       { color: var(--ok); }
+    Boot.warn     { color: var(--warn); }
+    Boot.fail     { color: var(--alert); }
+
+    /* Alert popup — panel interior, alert title, full-alert flash fill. */
+    Popup         { color: var(--fg); background: var(--panel); border: double; }
+    Popup.title   { color: var(--alert); font-weight: bold; }
+    Popup.flash   { color: var(--alert); background: var(--alert); }
 "#;
 
 /// The `:root` token block for a palette.
@@ -77,6 +131,10 @@ static CYBERPUNK: LazyLock<Stylesheet> = LazyLock::new(|| build(Theme::Cyberpunk
 static FALLOUT: LazyLock<Stylesheet> = LazyLock::new(|| build(Theme::Fallout.palette()));
 static WEYLAND: LazyLock<Stylesheet> = LazyLock::new(|| build(Theme::Weyland.palette()));
 static DEEP_SPACE: LazyLock<Stylesheet> = LazyLock::new(|| build(Theme::DeepSpace.palette()));
+static BLOODMOON: LazyLock<Stylesheet> = LazyLock::new(|| build(Theme::Bloodmoon.palette()));
+static NEBULA: LazyLock<Stylesheet> = LazyLock::new(|| build(Theme::Nebula.palette()));
+static ARCTIC: LazyLock<Stylesheet> = LazyLock::new(|| build(Theme::Arctic.palette()));
+static SENTINEL: LazyLock<Stylesheet> = LazyLock::new(|| build(Theme::Sentinel.palette()));
 
 /// The cached stylesheet for `theme`.
 pub fn stylesheet(theme: Theme) -> &'static Stylesheet {
@@ -85,5 +143,58 @@ pub fn stylesheet(theme: Theme) -> &'static Stylesheet {
         Theme::Fallout => &FALLOUT,
         Theme::Weyland => &WEYLAND,
         Theme::DeepSpace => &DEEP_SPACE,
+        Theme::Bloodmoon => &BLOODMOON,
+        Theme::Nebula => &NEBULA,
+        Theme::Arctic => &ARCTIC,
+        Theme::Sentinel => &SENTINEL,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// Every theme's stylesheet must parse. `stylesheet()` derefs the
+    /// `LazyLock`, so this forces all eight `build()` calls — if any CSS rule
+    /// is malformed the `.expect` inside `build` panics and fails the test.
+    #[test]
+    fn all_themes_parse() {
+        for theme in [
+            Theme::Cyberpunk,
+            Theme::Fallout,
+            Theme::Weyland,
+            Theme::DeepSpace,
+            Theme::Bloodmoon,
+            Theme::Nebula,
+            Theme::Arctic,
+            Theme::Sentinel,
+        ] {
+            // Touch the sheet — panics here if the bundled CSS fails to parse.
+            let _ = stylesheet(theme);
+        }
+    }
+
+    /// Each theme must resolve to its own static sheet (catches a match arm
+    /// accidentally aliasing another theme's sheet).
+    #[test]
+    fn each_theme_has_distinct_sheet() {
+        let sheets = [
+            stylesheet(Theme::Cyberpunk) as *const Stylesheet,
+            stylesheet(Theme::Fallout) as *const Stylesheet,
+            stylesheet(Theme::Weyland) as *const Stylesheet,
+            stylesheet(Theme::DeepSpace) as *const Stylesheet,
+            stylesheet(Theme::Bloodmoon) as *const Stylesheet,
+            stylesheet(Theme::Nebula) as *const Stylesheet,
+            stylesheet(Theme::Arctic) as *const Stylesheet,
+            stylesheet(Theme::Sentinel) as *const Stylesheet,
+        ];
+        for i in 0..sheets.len() {
+            for j in (i + 1)..sheets.len() {
+                assert_ne!(
+                    sheets[i], sheets[j],
+                    "themes #{i} and #{j} share a stylesheet"
+                );
+            }
+        }
     }
 }

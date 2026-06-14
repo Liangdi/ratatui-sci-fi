@@ -8,10 +8,12 @@
 pub mod palette;
 mod stylesheet;
 
-pub use palette::{Palette, Rgb, CYBERPUNK, DEEP_SPACE, FALLOUT, WEYLAND};
+pub use palette::{
+    Palette, Rgb, ARCTIC, BLOODMOON, CYBERPUNK, DEEP_SPACE, FALLOUT, NEBULA, SENTINEL, WEYLAND,
+};
 pub use stylesheet::stylesheet;
 
-/// The four built-in sci-fi themes.
+/// The eight built-in sci-fi themes.
 ///
 /// `Cyberpunk` is the default.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -25,6 +27,14 @@ pub enum Theme {
     Weyland,
     /// Deep blue / white / alert red — modern starship, minimalist flight HUD.
     DeepSpace,
+    /// Crimson / ember on near-black red — war-room, alarm console.
+    Bloodmoon,
+    /// Violet / ice-cyan on indigo-black — iridescent holographic UI.
+    Nebula,
+    /// Aqua-teal / pale ice on cold black — cryo-lab, polar station HUD.
+    Arctic,
+    /// Monochrome white / silver on charcoal — stealth, minimalist console.
+    Sentinel,
 }
 
 impl Theme {
@@ -35,6 +45,10 @@ impl Theme {
             Theme::Fallout => FALLOUT,
             Theme::Weyland => WEYLAND,
             Theme::DeepSpace => DEEP_SPACE,
+            Theme::Bloodmoon => BLOODMOON,
+            Theme::Nebula => NEBULA,
+            Theme::Arctic => ARCTIC,
+            Theme::Sentinel => SENTINEL,
         }
     }
 

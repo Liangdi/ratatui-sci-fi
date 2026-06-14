@@ -19,7 +19,16 @@ use ratatui_sci_fi::{MatrixRain, MatrixRainState, Theme};
 
 type Term = Terminal<CrosstermBackend<Stdout>>;
 
-const THEMES: [Theme; 4] = [Theme::Cyberpunk, Theme::Fallout, Theme::Weyland, Theme::DeepSpace];
+const THEMES: [Theme; 8] = [
+    Theme::Cyberpunk,
+    Theme::Fallout,
+    Theme::Weyland,
+    Theme::DeepSpace,
+    Theme::Bloodmoon,
+    Theme::Nebula,
+    Theme::Arctic,
+    Theme::Sentinel,
+];
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut terminal = setup()?;
