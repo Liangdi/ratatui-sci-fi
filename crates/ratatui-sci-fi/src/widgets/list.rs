@@ -13,8 +13,12 @@
 //!   to customize.
 //! - Scanline approach (chosen & documented here): each item occupies **two**
 //!   buffer rows — the text row, followed by a faint full-width `─` scanline
-//!   row drawn in `palette.muted`. The selected row gets a full background
-//!   fill (`palette.panel`) with `palette.accent` text and the cursor glyph.
+//!   row. Row styling goes through the theme's
+//!   [`Stylesheet`](ratatui_style::Stylesheet) cascade: the text row queries
+//!   the `List` node (overridden to `List.selected` — accent text on a panel
+//!   background — for the selected row), and the scanline queries `List.scan`
+//!   (muted). The rules are `var(--…)`-driven off the same palette, so the
+//!   resolved colors match reading `palette()` directly.
 //!
 //! # Example
 //!
@@ -29,9 +33,9 @@
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
-    style::Style,
     widgets::StatefulWidget,
 };
+use ratatui_style::{ComputeScratch, NodeRef};
 
 use crate::Theme;
 
@@ -112,11 +116,18 @@ impl StatefulWidget for ScanList {
             return;
         }
 
-        let palette = self.theme.palette();
-        let accent = palette.accent.color();
-        let fg = palette.fg.color();
-        let panel = palette.panel.color();
-        let muted = palette.muted.color();
+        // Row styles come from the theme's stylesheet cascade — the `List`,
+        // `List.selected`, and `List.scan` rules. One `ComputeScratch` is
+        // reused across the three lookups (the documented draw-loop pattern).
+        let sheet = self.theme.stylesheet();
+        let mut scratch = ComputeScratch::new();
+        let normal_style = sheet.compute_with(&NodeRef::new("List"), None, &mut scratch).to_style();
+        let selected_style = sheet
+            .compute_with(&NodeRef::new("List").classes(&["selected"]), None, &mut scratch)
+            .to_style();
+        let scan_style = sheet
+            .compute_with(&NodeRef::new("List").classes(&["scan"]), None, &mut scratch)
+            .to_style();
 
         // Each item reserves two rows: text + scanline. The last item's
         // scanline is drawn only if there's room.
@@ -125,11 +136,6 @@ impl StatefulWidget for ScanList {
         // Clamp selection into range so an empty/shrinking list never panics.
         let selected = state.selected.min(self.items.len() - 1);
         let cursor_on = state.cursor_visible(DEFAULT_CURSOR_PERIOD);
-
-        // Pre-computed styles.
-        let normal_style = Style::default().fg(fg);
-        let selected_style = Style::default().fg(accent).bg(panel);
-        let scan_style = Style::default().fg(muted);
 
         for (i, item) in self.items.iter().enumerate() {
             let text_y = area.y + (i as u16) * row_stride;

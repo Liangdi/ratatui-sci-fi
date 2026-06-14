@@ -13,17 +13,22 @@
 //! ## Implementation notes
 //! - Stateless [`Widget`]: `focused` is per-frame configuration set by the
 //!   app's event loop, not animation state.
-//! - Styling uses `theme.palette()` directly (bare `Color`/`Style`) — no CSS
-//!   cascade or `ComputeScratch` — keeping the widget self-contained.
+//! - Styling goes through the theme's [`Stylesheet`](ratatui_style::Stylesheet)
+//!   cascade: the button queries the `Button` node (plus a `.focus` class when
+//!   focused) via `compute`, so colors come from the `Button` / `Button.focus`
+//!   CSS rules rather than `palette()` directly. Because those rules are
+//!   `var(--…)`-driven off the same palette, the resolved colors are identical
+//!   to reading `palette()` — and `Button.focus` additionally applies
+//!   `font-weight: bold`.
 //! - The label is horizontally centered in `area`; rendering targets the
 //!   vertical middle row. All glyphs are width-1.
 
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
-    style::Style,
     widgets::Widget,
 };
+use ratatui_style::NodeRef;
 
 use crate::Theme;
 
@@ -39,7 +44,8 @@ pub struct Button {
     pub label: String,
     /// Whether this button currently has focus (drives the focused style).
     pub focused: bool,
-    /// Theme controlling the color palette. Defaults to [`Theme::Cyberpunk`].
+    /// Theme whose [`Stylesheet`](ratatui_style::Stylesheet) drives the button's
+    /// colors. Defaults to [`Theme::Cyberpunk`].
     pub theme: Theme,
 }
 
@@ -85,9 +91,19 @@ impl Widget for Button {
             return;
         }
 
-        let p = self.theme.palette();
+        // Style comes from the theme's stylesheet cascade. The `Button` node
+        // resolves to { accent fg, bg background }; `Button.focus` overrides
+        // with { bg fg, accent background, bold }. Both are `var(--…)`-driven
+        // off the same palette, so the resolved colors match reading
+        // `palette()` directly.
+        let sheet = self.theme.stylesheet();
+        let computed = if self.focused {
+            sheet.compute(&NodeRef::new("Button").classes(&["focus"]), None).to_style()
+        } else {
+            sheet.compute(&NodeRef::new("Button"), None).to_style()
+        };
 
-        // Pick the bracket glyphs and the per-segment styling based on focus.
+        // Pick the bracket glyphs based on focus.
         let (left, right) = if self.focused {
             // Dynamic energy arrows.
             ('▶', '◀')
@@ -104,26 +120,18 @@ impl Widget for Button {
         // We render on the vertical middle row of the area.
         let row = area.y + area.height / 2;
 
-        // Horizontally center `content` within `area`. `content.len()` is the
-        // byte length; every glyph we emit is ASCII or a width-1 char, so byte
-        // length == display width here.
+        // Horizontally center `content` within `area`. Every glyph we emit is
+        // ASCII or a width-1 char, so char count == display width here.
         let content_width = content.chars().count() as u16;
         let available = area.width;
         let content_width = content_width.min(available);
         let x = area.x + available.saturating_sub(content_width) / 2;
 
-        // Whole-button background + base style.
-        // - Focused: accent background, bright inverted label.
-        // - Unfocused: app background, muted brackets with an accent label.
-        let (area_style, text_style) = if self.focused {
-            let base = Style::new().bg(p.accent.color()).fg(p.bg.color());
-            // REVERSED flips fg/bg per cell, so the bright accent text lands on
-            // the panel background — the classic "highlighted" console look.
-            (base, base.reversed())
-        } else {
-            let bg = Style::new().bg(p.bg.color());
-            (bg, bg.fg(p.accent.color()))
-        };
+        // Whole-button background + base style from the cascade. Focused text is
+        // REVERSED so the bright accent label lands inverted on the accent fill
+        // — the classic "highlighted" console look.
+        let area_style = computed;
+        let text_style = if self.focused { computed.reversed() } else { computed };
 
         // Paint the button's full area background first, so empty cells pick up
         // the highlight when focused.
@@ -212,6 +220,39 @@ mod tests {
                 "cell ({x}, {middle}) should have accent bg, got {cell_bg:?}"
             );
         }
+    }
+
+    #[test]
+    fn focused_applies_cascade_bold_and_reversed() {
+        use ratatui::style::Modifier;
+        let buf = render(Button::new("OK").focused(true));
+        let middle = H / 2;
+
+        // The whole focused area carries BOLD — `area_style` comes straight
+        // from the `Button.focus { font-weight: bold }` cascade rule.
+        assert!(
+            buf[(0, middle)].modifier.contains(Modifier::BOLD),
+            "focused area should be bold via the cascade, got {:?}",
+            buf[(0, middle)].modifier
+        );
+
+        // The label glyph additionally carries REVERSED (inverted-label
+        // emphasis). Find the 'O' cell on the middle row and check it.
+        let label_x = (0..W)
+            .find(|&x| buf[(x, middle)].symbol() == "O")
+            .expect("'O' should be rendered on the focused middle row");
+        assert!(
+            buf[(label_x, middle)].modifier.contains(Modifier::REVERSED),
+            "focused label should be reversed, got {:?}",
+            buf[(label_x, middle)].modifier
+        );
+
+        // An unfocused button is neither bold nor reversed.
+        let idle = render(Button::new("OK"));
+        assert!(
+            !idle[(0, middle)].modifier.contains(Modifier::BOLD),
+            "unfocused button must not be bold"
+        );
     }
 
     #[test]
