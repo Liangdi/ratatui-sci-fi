@@ -108,7 +108,7 @@ const LOG_ITEMS: &[&str] = &[
     "CALIBRATING GYRO",
 ];
 
-struct App {
+pub struct App {
     frame: u64,
     theme_idx: usize,
     radar: SciFiRadarState,
@@ -122,7 +122,7 @@ struct App {
 }
 
 impl App {
-    fn new() -> Self {
+    pub fn new() -> Self {
         let mut radar = SciFiRadarState::default();
         radar.push_blip(Blip::new(0.7, 0.60, 0.9));
         radar.push_blip(Blip::new(2.4, 0.42, 0.6));
@@ -141,11 +141,17 @@ impl App {
         }
     }
 
-    fn theme(&self) -> Theme {
+    pub fn theme(&self) -> Theme {
         THEMES[self.theme_idx]
     }
 
-    fn tick(&mut self) {
+    /// Cycle to the next theme — mirrors the `t` key, exposed so the headless
+    /// screenshot harness can showcase every palette in one looping capture.
+    pub fn cycle_theme(&mut self) {
+        self.theme_idx = (self.theme_idx + 1) % THEMES.len();
+    }
+
+    pub fn tick(&mut self) {
         self.frame = self.frame.wrapping_add(1);
         self.title.tick();
         self.boot.tick();
@@ -215,7 +221,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn draw(f: &mut ratatui::Frame<'_>, app: &mut App) {
+pub fn draw(f: &mut ratatui::Frame<'_>, app: &mut App) {
     let theme = app.theme();
     let area = f.area();
 

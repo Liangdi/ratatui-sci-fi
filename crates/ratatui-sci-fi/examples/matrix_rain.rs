@@ -14,7 +14,7 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use ratatui::{Terminal, backend::CrosstermBackend};
+use ratatui::{Frame, Terminal, backend::CrosstermBackend};
 use ratatui_sci_fi::{MatrixRain, MatrixRainState, Theme};
 
 type Term = Terminal<CrosstermBackend<Stdout>>;
@@ -30,25 +30,52 @@ const THEMES: [Theme; 8] = [
     Theme::Sentinel,
 ];
 
+/// Drives the rain's animation clock and the active theme. Kept as a small
+/// `pub` struct (with a `draw` entry point) so the headless screenshot harness
+/// can render it off-screen without a real terminal.
+pub struct App {
+    state: MatrixRainState,
+    theme_idx: usize,
+}
+
+impl App {
+    pub fn new() -> Self {
+        Self { state: MatrixRainState::default(), theme_idx: 0 }
+    }
+
+    pub fn theme(&self) -> Theme {
+        THEMES[self.theme_idx]
+    }
+
+    /// Cycle to the next theme — mirrors the `t` key.
+    pub fn cycle_theme(&mut self) {
+        self.theme_idx = (self.theme_idx + 1) % THEMES.len();
+    }
+
+    pub fn tick(&mut self) {
+        self.state.tick();
+    }
+
+    pub fn draw(f: &mut Frame<'_>, app: &mut App) {
+        let rain = MatrixRain::new().density(0.9).speed(0.6).theme(app.theme());
+        f.render_stateful_widget(rain, f.area(), &mut app.state);
+    }
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut terminal = setup()?;
-    let mut state = MatrixRainState::default();
-    let mut theme_idx = 0usize;
+    let mut app = App::new();
 
     loop {
-        let theme = THEMES[theme_idx];
-        terminal.draw(|f| {
-            let rain = MatrixRain::new().density(0.9).speed(0.6).theme(theme);
-            f.render_stateful_widget(rain, f.area(), &mut state);
-        })?;
-        state.tick();
+        terminal.draw(|f| App::draw(f, &mut app))?;
+        app.tick();
 
         if event::poll(Duration::from_millis(60))?
             && let Event::Key(key) = event::read()?
         {
             match key.code {
                 KeyCode::Char('q') | KeyCode::Esc => break,
-                KeyCode::Char('t') => theme_idx = (theme_idx + 1) % THEMES.len(),
+                KeyCode::Char('t') => app.cycle_theme(),
                 _ => {}
             }
         }

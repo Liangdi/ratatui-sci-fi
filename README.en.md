@@ -26,11 +26,24 @@ English | **[中文](README.md)**
 Run the bundled examples (no extra setup required):
 
 ```sh
-cargo run -p ratatui-sci-fi --example dashboard
-cargo run -p ratatui-sci-fi --example matrix_rain
+cargo run -p ratatui-sci-fi --example dashboard      # composite HUD (all widgets)
+cargo run -p ratatui-sci-fi --example widget_gallery # 3×3 grid, one widget per cell
+cargo run -p ratatui-sci-fi --example matrix_rain    # full-screen digital rain
 ```
 
-The `dashboard` example is laid out roughly like this (in reality it's a colorful, animated screen):
+**`dashboard`** — a composite sci-fi HUD: boot sequence + radar sweep / energy gauges / biometrics / event log; press `t` to cycle themes.
+
+![dashboard example](screenshot/dashboard.gif)
+
+**`widget_gallery`** — every widget isolated in its own cell.
+
+![widget gallery example](screenshot/widget_gallery.gif)
+
+**`matrix_rain`** — a full-screen digital-rain backdrop.
+
+![matrix rain example](screenshot/matrix_rain.gif)
+
+> Structural sketch of the `dashboard` layout (the GIFs above are the real, animated capture):
 
 ```text
 ┌──────────────────────────────────────────────────────────────────┐
@@ -219,7 +232,7 @@ ratatui-sci-fi/                  # Cargo workspace
 - [x] Four themes + 10 widgets
 - [x] Runtime-synthesized audio engine (`audio` feature)
 - [ ] Parameterize sound character (tunable frequency/duration)
-- [ ] Named demo GIFs / screenshots
+- [x] Named demo GIFs / screenshots (`screenshot/` + the headless `capture_screenshots` example; needs ffmpeg)
 - [ ] More theme variants
 
 ---

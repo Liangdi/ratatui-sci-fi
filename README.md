@@ -26,11 +26,24 @@
 运行自带示例(无需额外配置):
 
 ```sh
-cargo run -p ratatui-sci-fi --example dashboard
-cargo run -p ratatui-sci-fi --example matrix_rain
+cargo run -p ratatui-sci-fi --example dashboard      # 综合仪表盘(全组件)
+cargo run -p ratatui-sci-fi --example widget_gallery # 3×3 网格逐组件展示
+cargo run -p ratatui-sci-fi --example matrix_rain    # 全屏数字雨
 ```
 
-`dashboard` 示例大致呈现如下布局(实际为彩色动态画面):
+**`dashboard`** —— 综合科幻 HUD:开机序列 + 雷达扫描 / 能量槽 / 生命体征 / 事件列表,`t` 切换主题。
+
+![dashboard 示例](screenshot/dashboard.gif)
+
+**`widget_gallery`** —— 10 个组件各自独立展示。
+
+![widget gallery 示例](screenshot/widget_gallery.gif)
+
+**`matrix_rain`** —— 全屏数字雨背景。
+
+![matrix rain 示例](screenshot/matrix_rain.gif)
+
+> `dashboard` 的版面结构示意(上方为彩色动态实拍,下方为静态结构图):
 
 ```text
 ┌──────────────────────────────────────────────────────────────────┐
@@ -218,7 +231,7 @@ ratatui-sci-fi/                  # Cargo workspace
 - [x] 四大主题 + 10 个组件
 - [x] 运行时合成音效引擎(`audio` feature)
 - [ ] 更多音色参数化(频率/时长可调)
-- [ ] 命名捕获的 demo 动图 / 截图
+- [x] 命名捕获的 demo 动图 / 截图(`screenshot/` + `capture_screenshots` 无头渲染示例,需 ffmpeg)
 - [ ] 更多主题变体
 
 ---

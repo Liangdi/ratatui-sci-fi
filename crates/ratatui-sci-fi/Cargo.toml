@@ -29,3 +29,10 @@ rodio = { workspace = true, optional = true }
 # backend-agnostic so downstream apps can pick their own.
 [dev-dependencies]
 crossterm.workspace = true
+# Headless screenshot capture (`examples/capture_screenshots.rs`): renders the
+# example TUIs to an off-screen `Buffer` via `TestBackend`, rasterizes each cell
+# to pixels, and emits PNG frames that ffmpeg stitches into looping APNGs. None
+# of this ships to consumers — it's a dev-only tool for regenerating README art.
+ab_glyph = "0.2"
+png = "0.17"
+

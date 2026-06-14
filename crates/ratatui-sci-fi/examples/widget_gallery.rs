@@ -76,7 +76,7 @@ const BOOT_TPL: u64 = 9;
 /// Extra ticks the finished boot log lingers before the reveal replays.
 const BOOT_PAUSE: u64 = 45;
 
-struct App {
+pub struct App {
     frame: u64,
     theme_idx: usize,
     button_focus: usize,
@@ -95,7 +95,7 @@ struct App {
 }
 
 impl App {
-    fn new() -> Self {
+    pub fn new() -> Self {
         let mut radar = SciFiRadarState::default();
         radar.push_blip(Blip::new(0.7, 0.55, 0.9));
         radar.push_blip(Blip::new(2.4, 0.75, 0.7));
@@ -118,12 +118,18 @@ impl App {
         }
     }
 
-    fn theme(&self) -> Theme {
+    pub fn theme(&self) -> Theme {
         THEMES[self.theme_idx]
     }
 
+    /// Cycle to the next theme — mirrors the `t` key, exposed for the headless
+    /// screenshot harness so one looping capture can showcase every palette.
+    pub fn cycle_theme(&mut self) {
+        self.theme_idx = (self.theme_idx + 1) % THEMES.len();
+    }
+
     /// Advance every widget's animation clock one tick.
-    fn tick(&mut self) {
+    pub fn tick(&mut self) {
         self.frame = self.frame.wrapping_add(1);
         self.title.tick();
         self.glitch_a.tick();
@@ -190,7 +196,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn draw(f: &mut ratatui::Frame<'_>, app: &mut App) {
+pub fn draw(f: &mut ratatui::Frame<'_>, app: &mut App) {
     let theme = app.theme();
     let area = f.area();
 
