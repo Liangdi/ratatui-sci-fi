@@ -10,10 +10,14 @@
 //!   from what pool; non-glitch ticks show the clean text.
 //! - RNG: a small xorshift32 PRNG is kept in [`GlitchTextState`] (fixed seed in
 //!   [`Default`]) so test output is fully deterministic.
-//! - **Styling.** Clean characters use `palette.fg`; glitched characters use
-//!   `palette.alert` (the danger color — the glitch reads as corruption /
-//!   signal failure). This is the documented choice; swap to `accent2` if a
-//!   calmer "static" feel is ever wanted.
+//! - **Styling.** Colors are sourced through the theme's [`Stylesheet`]
+//!   cascade rather than read off the [`Palette`](crate::Palette) directly:
+//!   clean characters resolve via the `Glitch` rule (`var(--fg)`) and glitched
+//!   characters via `Glitch.corrupt` (`var(--alert)`, the danger color — the
+//!   glitch reads as corruption / signal failure). Because both rules are
+//!   `var(--…)`-driven off the same palette, the rendered colors are unchanged
+//!   from the previous direct-palette reads; swap `--alert` for `--accent2`
+//!   (or add a new rule) if a calmer "static" feel is ever wanted.
 //!
 //! # Example
 //!
@@ -30,9 +34,9 @@
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
-    style::Style,
     widgets::StatefulWidget,
 };
+use ratatui_style::{ComputeScratch, NodeRef};
 
 use crate::Theme;
 
@@ -241,12 +245,14 @@ impl StatefulWidget for GlitchText {
             return;
         }
 
-        let palette = self.theme.palette();
-        let fg = palette.fg.color();
-        let alert = palette.alert.color();
-
-        let clean_style = Style::default().fg(fg);
-        let glitch_style = Style::default().fg(alert);
+        let sheet = self.theme.stylesheet();
+        let mut scratch = ComputeScratch::new();
+        let clean_style = sheet
+            .compute_with(&NodeRef::new("Glitch"), None, &mut scratch)
+            .to_style();
+        let glitch_style = sheet
+            .compute_with(&NodeRef::new("Glitch").classes(&["corrupt"]), None, &mut scratch)
+            .to_style();
 
         // Pre-collect chars so we can index without re-borrowing `self.text`.
         let chars: Vec<char> = self.text.chars().collect();

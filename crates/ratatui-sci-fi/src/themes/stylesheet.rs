@@ -47,13 +47,19 @@ const COMPONENT_CSS: &str = r#"
     Cursor      { color: var(--accent); }
     Alert       { color: var(--alert); border: double; }
 
-    /* Energy gauge — segmented energy bar (`Bar` above is the legacy alias). */
-    Gauge        { color: var(--accent); }
+    /* Energy gauge — segmented energy bar (`Bar` above is the legacy alias).
+       The base node supplies the gap-cell background; level/empty/label
+       classes color the bar cells, empty cells, and the left label. */
+    Gauge        { color: var(--accent); background: var(--bg); }
+    Gauge.ok     { color: var(--ok); }
     Gauge.warn   { color: var(--warn); }
     Gauge.alert  { color: var(--alert); }
+    Gauge.empty  { color: var(--muted); }
+    Gauge.label  { color: var(--fg); }
 
-    /* Biometric multi-trace chart — grid uses muted, traces cycle tokens. */
-    Biometric         { color: var(--muted); }
+    /* Biometric multi-trace chart — grid/axes use muted, block bg is panel,
+       traces cycle tokens. */
+    Biometric         { color: var(--muted); background: var(--panel); }
     Biometric.trace0  { color: var(--accent); }
     Biometric.trace1  { color: var(--accent2); }
     Biometric.trace2  { color: var(--ok); }
@@ -72,9 +78,11 @@ const COMPONENT_CSS: &str = r#"
     Glitch          { color: var(--fg); }
     Glitch.corrupt  { color: var(--alert); }
 
-    /* Target lock HUD — brackets use accent, locked state escalates to alert. */
-    Target         { color: var(--accent); }
-    Target.locked  { color: var(--alert); font-weight: bold; }
+    /* Target lock HUD — brackets use accent, crosshair uses muted, locked
+       state escalates to alert. */
+    Target            { color: var(--accent); }
+    Target.crosshair  { color: var(--muted); }
+    Target.locked     { color: var(--alert); font-weight: bold; }
 
     /* Sci-fi radar — sweep accent, grid muted, friendly blips ok, threats alert. */
     Radar         { color: var(--accent); }
@@ -82,11 +90,12 @@ const COMPONENT_CSS: &str = r#"
     Radar.blip    { color: var(--ok); }
     Radar.threat  { color: var(--alert); }
 
-    /* Boot sequence — line color follows its status class. */
+    /* Boot sequence — line color follows its status class; flicker forces muted. */
     Boot          { color: var(--fg); }
     Boot.ok       { color: var(--ok); }
     Boot.warn     { color: var(--warn); }
     Boot.fail     { color: var(--alert); }
+    Boot.flicker  { color: var(--muted); }
 
     /* Alert popup — panel interior, alert title, full-alert flash fill. */
     Popup         { color: var(--fg); background: var(--panel); border: double; }

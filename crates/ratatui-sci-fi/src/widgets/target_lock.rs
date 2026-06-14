@@ -23,9 +23,11 @@
 //! ## Implementation notes
 //! - Stateless [`Widget`]: `render(self, area, buf)` by value. The theme and
 //!   title are per-frame configuration, not animation state.
-//! - Styled with [`Theme::palette`] → bare [`ratatui::style::Color`] /
-//!   [`ratatui::style::Style`] directly (brackets use `palette.accent`,
-//!   crosshair uses `palette.muted`).
+//! - Styled through the theme's [`ratatui_style::Stylesheet`] cascade — the
+//!   `Target` rule drives the corner brackets / arms / title and the
+//!   `Target.crosshair` rule drives the center crosshair. Colors are unchanged
+//!   because both rules are `var(--…)`-driven off the same [`Theme::palette`]
+//!   (accent / muted).
 //! - Safe for tiny areas: when `width` or `height` is less than 3 the frame is
 //!   skipped (only the crosshair is drawn when it fits), and `inner(area)`
 //!   never produces an out-of-bounds rect.
@@ -38,6 +40,7 @@ use ratatui::{
     style::Style,
     widgets::Widget,
 };
+use ratatui_style::{ComputeScratch, NodeRef};
 
 use crate::Theme;
 
@@ -132,9 +135,14 @@ impl TargetLock {
 
 impl Widget for TargetLock {
     fn render(self, area: Rect, buf: &mut Buffer) {
-        let palette = self.theme.palette();
-        let bracket_style = Style::new().fg(palette.accent.color());
-        let crosshair_style = Style::new().fg(palette.muted.color());
+        let sheet = self.theme.stylesheet();
+        let mut scratch = ComputeScratch::new();
+        let bracket_style = sheet
+            .compute_with(&NodeRef::new("Target"), None, &mut scratch)
+            .to_style();
+        let crosshair_style = sheet
+            .compute_with(&NodeRef::new("Target").classes(&["crosshair"]), None, &mut scratch)
+            .to_style();
 
         // Degenerate area: nothing meaningful to draw.
         if area.width == 0 || area.height == 0 {

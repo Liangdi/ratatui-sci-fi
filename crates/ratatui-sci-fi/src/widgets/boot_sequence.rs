@@ -12,22 +12,21 @@
 //!   zero lines are visible; the i-th line appears once `tick >= i * ticks_per_line`.
 //!   Call [`BootSequenceState::tick`] once per frame.
 //! - **Flicker cadence:** flicker fires once per [`DEFAULT_FLICKER_PERIOD`]
-//!   ticks, lasting exactly one tick. During a flicker tick the whole frame's
-//!   foreground is switched to `palette.muted` (a dimmed look reminiscent of a
-//!   CRT losing sync). The flag is also exposed as
+//!   ticks, lasting exactly one tick. During a flicker tick the whole frame
+//!   is drawn through the `Boot.flicker` cascade rule (a dimmed look
+//!   reminiscent of a CRT losing sync). The flag is also exposed as
 //!   [`BootSequenceState::flicker`] for callers that want to react to it.
-//! - **Line styling:** normal boot lines use `palette.fg`, "ok" / nominal
-//!   messages use `palette.ok`, and any line containing the substring `ERROR`
-//!   or `FAIL` (case-sensitive, ASCII only) is rendered in `palette.alert`.
-//!   This is an intentionally cheap heuristic; for richer classification wrap
-//!   the input strings yourself.
+//! - **Line styling:** all colors go through the theme's stylesheet cascade
+//!   (`Boot` / `Boot.ok` / `Boot.fail` / `Boot.flicker`). Normal boot lines
+//!   resolve to the `Boot` rule, "ok" / nominal messages to `Boot.ok`, and
+//!   any line containing the substring `ERROR` or `FAIL` (case-sensitive,
+//!   ASCII only) to `Boot.fail`. The resolved RGB values are byte-identical
+//!   to the old `palette.fg` / `palette.ok` / `palette.alert` / `palette.muted`
+//!   lookups, so rendered colors are unchanged. This is an intentionally cheap
+//!   heuristic; for richer classification wrap the input strings yourself.
 
-use ratatui::{
-    buffer::Buffer,
-    layout::Rect,
-    style::{Color, Style},
-    widgets::StatefulWidget,
-};
+use ratatui::{buffer::Buffer, layout::Rect, widgets::StatefulWidget};
+use ratatui_style::{ComputeScratch, NodeRef};
 
 use crate::Theme;
 
@@ -156,13 +155,10 @@ impl StatefulWidget for BootSequence {
             return;
         }
 
-        let palette = self.theme.palette();
-        let fg = palette.fg.color();
-        let ok = palette.ok.color();
-        let alert = palette.alert.color();
-        let muted = palette.muted.color();
+        let sheet = self.theme.stylesheet();
+        let mut scratch = ComputeScratch::new();
 
-        // During a flicker tick the whole frame is dimmed to `muted`.
+        // During a flicker tick the whole frame is dimmed via `Boot.flicker`.
         let flickering = state.flicker_active();
 
         // Number of lines revealed at this instant.
@@ -182,12 +178,21 @@ impl StatefulWidget for BootSequence {
                 break;
             }
 
-            let color = if flickering {
-                muted
+            // Pick the cascade node for this line. Flicker takes precedence
+            // and dims the whole frame; otherwise the line's status class
+            // selects `Boot.ok` / `Boot.fail`, falling back to bare `Boot`.
+            let style = if flickering {
+                sheet
+                    .compute_with(&NodeRef::new("Boot").classes(&["flicker"]), None, &mut scratch)
+                    .to_style()
             } else {
-                line_color(src, fg, ok, alert)
+                match line_class(src) {
+                    "" => sheet.compute_with(&NodeRef::new("Boot"), None, &mut scratch).to_style(),
+                    cls => sheet
+                        .compute_with(&NodeRef::new("Boot").classes(&[cls]), None, &mut scratch)
+                        .to_style(),
+                }
             };
-            let style = Style::default().fg(color);
 
             let mut col = area.x;
             for ch in src.chars() {
@@ -210,22 +215,26 @@ impl StatefulWidget for BootSequence {
     }
 }
 
-/// Pick the foreground color for a single boot line.
+/// Pick the stylesheet status class for a single boot line.
 ///
-/// Cheap heuristic (documented at the crate root of this module):
-/// - case-sensitive ASCII substring `ERROR` or `FAIL` → `alert`
-/// - lines ending in ` OK` (with optional trailing dots/whitespace) → `ok`
-/// - otherwise → `fg` (the default passed in)
-fn line_color(src: &str, fg: Color, ok: Color, alert: Color) -> Color {
+/// Cheap heuristic (documented at the top of this module):
+/// - case-sensitive ASCII substring `ERROR` or `FAIL` → `"fail"`
+/// - lines ending in ` OK` (with optional trailing dots/whitespace) → `"ok"`
+/// - otherwise → `""` (the bare `Boot` node, no class)
+///
+/// The caller maps the returned class onto the `Boot` / `Boot.ok` /
+/// `Boot.fail` cascade rules; the resolved colors are identical to the old
+/// direct `palette.*` lookups.
+fn line_class(src: &str) -> &'static str {
     if src.contains("ERROR") || src.contains("FAIL") {
-        alert
+        "fail"
     } else {
         // Treat a trailing "OK" (the classic POST check result) as nominal.
         let trimmed = src.trim_end_matches(|c: char| c == '.' || c.is_whitespace());
         if trimmed.ends_with("OK") {
-            ok
+            "ok"
         } else {
-            fg
+            ""
         }
     }
 }

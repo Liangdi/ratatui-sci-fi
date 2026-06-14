@@ -17,17 +17,23 @@
 //!
 //! ## Implementation notes
 //! - Stateless [`Widget`]; `ratio` is per-frame config.
-//! - Drawn cell-by-cell directly into the [`Buffer`] using bare `Color`s from
-//!   [`Theme::palette`](crate::Theme::palette), so it works without the
-//!   stylesheet cascade.
+//! - Drawn cell-by-cell directly into the [`Buffer`], with every color routed
+//!   through the theme's [`Stylesheet`](crate::Theme::stylesheet) cascade: the
+//!   `Gauge` / `Gauge.ok`|`Gauge.warn`|`Gauge.alert` rules drive the bar color,
+//!   `Gauge.empty` drives the empty cells, and `Gauge.label` drives the label.
+//!   Because every rule is `var(--…)`-backed off the same palette, the rendered
+//!   colors are byte-identical to reading the palette directly.
 
 use crate::Theme;
 use ratatui::{
     buffer::Buffer,
     layout::Rect,
-    style::{Color, Style},
+    style::Style,
     widgets::Widget,
 };
+#[cfg(test)]
+use ratatui::style::Color;
+use ratatui_style::{ComputeScratch, NodeRef};
 
 const FILLED: &str = "▰";
 const EMPTY: &str = "▱";
@@ -106,17 +112,26 @@ impl EnergyGauge {
         (ratio * seg).round() as u16
     }
 
-    /// Pick the bar color for the current level.
-    fn bar_color(&self) -> Color {
-        let p = self.theme.palette();
+    /// Map the current ratio to its level's CSS class name.
+    fn level_class(&self) -> &'static str {
         let ratio = self.clamped_ratio();
         if ratio >= 0.6 {
-            p.ok.color()
+            "ok"
         } else if ratio >= 0.3 {
-            p.warn.color()
+            "warn"
         } else {
-            p.alert.color()
+            "alert"
         }
+    }
+
+    /// Pick the bar color for the current level — resolved through the
+    /// `Gauge.<level>` cascade node. Used by tests; render reuses the computed
+    /// style directly.
+    #[cfg(test)]
+    fn bar_color(&self) -> Color {
+        let sheet = self.theme.stylesheet();
+        let cls = self.level_class();
+        sheet.compute(&NodeRef::new("Gauge").classes(&[cls]), None).to_style().fg.unwrap()
     }
 }
 
@@ -126,11 +141,15 @@ impl Widget for EnergyGauge {
             return;
         }
 
-        let p = self.theme.palette();
-        let bar_color = self.bar_color();
-        let bar_style = Style::default().fg(bar_color);
-        let label_style = Style::default().fg(p.fg.color());
-        let muted_style = Style::default().fg(p.muted.color());
+        let sheet = self.theme.stylesheet();
+        let mut scratch = ComputeScratch::new();
+        let bar_style =
+            sheet.compute_with(&NodeRef::new("Gauge").classes(&[self.level_class()]), None, &mut scratch).to_style();
+        let label_style =
+            sheet.compute_with(&NodeRef::new("Gauge").classes(&["label"]), None, &mut scratch).to_style();
+        let empty_style =
+            sheet.compute_with(&NodeRef::new("Gauge").classes(&["empty"]), None, &mut scratch).to_style();
+        let gap_bg = sheet.compute_with(&NodeRef::new("Gauge"), None, &mut scratch).to_style().bg.unwrap();
 
         let y = area.y;
         let mut x = area.x;
@@ -148,7 +167,7 @@ impl Widget for EnergyGauge {
                 }
                 // One-cell gap after the label, if there's room.
                 if x < right {
-                    buf[(x, y)].set_style(Style::default().bg(p.bg.color()));
+                    buf[(x, y)].set_style(Style::default().bg(gap_bg));
                     x += 1;
                 }
             }
@@ -162,7 +181,7 @@ impl Widget for EnergyGauge {
                 break;
             }
             let glyph = if i < filled { FILLED } else { EMPTY };
-            let style = if i < filled { bar_style } else { muted_style };
+            let style = if i < filled { bar_style } else { empty_style };
             buf[(x, y)].set_symbol(glyph).set_style(style);
             x += 1;
         }
@@ -174,13 +193,12 @@ impl Widget for EnergyGauge {
         // Walk backwards from the right edge so the value hugs the right margin.
         if pct_len < area.width {
             let start_px = right.saturating_sub(pct_len);
-            let pct_style = Style::default().fg(bar_color);
             for (i, ch) in pct_text.chars().enumerate() {
                 let px = start_px + i as u16;
                 if px >= right {
                     break;
                 }
-                buf[(px, y)].set_symbol(ch.to_string().as_str()).set_style(pct_style);
+                buf[(px, y)].set_symbol(ch.to_string().as_str()).set_style(bar_style);
             }
         }
     }
