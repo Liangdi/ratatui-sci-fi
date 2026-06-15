@@ -142,6 +142,69 @@ const COMPONENT_CSS: &str = r#"
     Spark.alert  { color: var(--alert); }
     Spark.grid   { color: var(--muted); }
 
+    /* Candlestick — OHLC financial chart (canvas-drawn). Grid/base carries the
+       muted axis tint + background; up bodies use ok, down bodies alert, wicks
+       the foreground. */
+    Candle        { color: var(--muted); background: var(--bg); }
+    Candle.up     { color: var(--ok); }
+    Candle.down   { color: var(--alert); }
+    Candle.wick   { color: var(--fg); }
+
+    /* Tree map — proportional rectangle map. Cells cycle the palette tokens by
+       category; label colors the per-cell caption. */
+    Tree          { background: var(--bg); }
+    Tree.cell0    { color: var(--accent); }
+    Tree.cell1    { color: var(--accent2); }
+    Tree.cell2    { color: var(--ok); }
+    Tree.cell3    { color: var(--warn); }
+    Tree.cell4    { color: var(--alert); }
+    Tree.label    { color: var(--fg); }
+
+    /* Area chart — filled area under a trend curve. fill colors the area, line
+       the top edge, grid the (undrawn) axis. */
+    Area          { background: var(--bg); }
+    Area.fill     { color: var(--accent); }
+    Area.line     { color: var(--accent2); }
+    Area.grid     { color: var(--muted); }
+
+    /* Activity rings — concentric multi-goal rings. Each ring cycles a goal
+       token; track colors the unfilled ring background. */
+    Ring          { background: var(--bg); }
+    Ring.goal0    { color: var(--accent); }
+    Ring.goal1    { color: var(--accent2); }
+    Ring.goal2    { color: var(--ok); }
+    Ring.goal3    { color: var(--warn); }
+    Ring.goal4    { color: var(--alert); }
+    Ring.track    { color: var(--muted); }
+
+    /* Strip chart — multi-channel oscilloscope. Each channel cycles a token;
+       grid colors the inter-strip dividers. */
+    Strip         { background: var(--bg); }
+    Strip.ch0     { color: var(--accent); }
+    Strip.ch1     { color: var(--accent2); }
+    Strip.ch2     { color: var(--ok); }
+    Strip.ch3     { color: var(--warn); }
+    Strip.ch4     { color: var(--alert); }
+    Strip.grid    { color: var(--muted); }
+
+    /* Radial bar chart — polar bars around a center. Each bar cycles a token;
+       track the outer ring, grid the orientation spokes. */
+    RBar          { background: var(--bg); }
+    RBar.bar0     { color: var(--accent); }
+    RBar.bar1     { color: var(--accent2); }
+    RBar.bar2     { color: var(--ok); }
+    RBar.bar3     { color: var(--warn); }
+    RBar.bar4     { color: var(--alert); }
+    RBar.track    { color: var(--muted); }
+    RBar.grid     { color: var(--muted); }
+
+    /* Compass — heading indicator. Rose uses accent, needle alert, degree marks
+       muted, cardinal letters foreground. */
+    Compass         { color: var(--accent); }
+    Compass.needle  { color: var(--alert); }
+    Compass.mark    { color: var(--muted); }
+    Compass.cardinal{ color: var(--fg); }
+
     /* Scan list — selected row gets an accent-on-panel highlight. */
     List          { color: var(--fg); }
     List.selected { color: var(--accent); background: var(--panel); }
