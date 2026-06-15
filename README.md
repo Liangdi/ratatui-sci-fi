@@ -52,6 +52,8 @@ cargo run -p ratatui-sci-fi --example matrix_rain    # 全屏数字雨
 └──────────────┴───────────────────────────────────────┴────────────┘
 ```
 
+![agent console 示例](screenshot/agent_console.gif)
+
 
 **`dashboard`** —— 综合科幻 HUD:开机序列 + 雷达扫描 / 能量槽 / 生命体征 / 事件列表,`t` 切换主题。
 

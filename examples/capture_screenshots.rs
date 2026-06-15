@@ -43,8 +43,12 @@ mod button;
 #[allow(dead_code, unused_imports)]
 #[path = "widget_gallery.rs"]
 mod widget_gallery;
+#[allow(dead_code, unused_imports)]
+#[path = "agent_console.rs"]
+mod agent_console;
 
 // Re-export the example modules under the names the scene table uses.
+use agent_console as scene_agent_console;
 use button as scene_button;
 use dashboard as scene_dashboard;
 use matrix_rain as scene_matrix_rain;
@@ -515,6 +519,41 @@ fn main() -> std::io::Result<()> {
             scene_matrix_rain::App::tick,
             scene_matrix_rain::App::cycle_theme,
             |a: &scene_matrix_rain::App| a.theme(),
+        )?;
+    }
+
+    // AI Agent Console — boot into the Console scene (fast-forwarded past boot +
+    // login by `new_app`), then keep the chat alive by transmitting a scripted
+    // line every ~34 frames so the GIF shows streaming markdown replies.
+    if selected("agent_console") {
+        let frame = std::cell::Cell::new(0u32);
+        let script = ["status report", "ORACLE, threat board?", "ATLAS, ETA to jump?", "VEX, stand down"];
+        run_scene(
+            "agent_console",
+            120,
+            34,
+            0, // warm-up happens in new_app (fast-forward)
+            170,
+            fps,
+            55, // cycle themes slowly so every palette shows up
+            metrics,
+            &fonts,
+            || {
+                let mut a = scene_agent_console::App::new();
+                a.fast_forward_to_console();
+                a
+            },
+            |f, a| scene_agent_console::draw(f, a),
+            |a| {
+                a.tick();
+                let i = frame.get();
+                frame.set(i + 1);
+                if i > 0 && i % 34 == 0 && !a.chat_streaming() {
+                    a.transmit(script[((i / 34) as usize) % script.len()]);
+                }
+            },
+            scene_agent_console::App::cycle_theme,
+            |a: &scene_agent_console::App| a.theme(),
         )?;
     }
 

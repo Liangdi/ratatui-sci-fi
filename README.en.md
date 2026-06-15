@@ -26,10 +26,15 @@ English | **[中文](README.md)**
 Run the bundled examples (no extra setup required):
 
 ```sh
+cargo run -p ratatui-sci-fi --example agent_console  # AI agent console (boot→login→chat)
 cargo run -p ratatui-sci-fi --example dashboard      # composite HUD (all widgets)
 cargo run -p ratatui-sci-fi --example widget_gallery # 3×3 grid, one widget per cell
 cargo run -p ratatui-sci-fi --example matrix_rain    # full-screen digital rain
 ```
+
+**`agent_console`** — an AI + sci-fi integration: a matrix-rain boot animation → operator login (callsign + masked passcode + a biometric flourish + an auth animation) → an agent console (left: agent roster, center: a `CommLog` chat feed of **bordered markdown cards** with streaming replies, right: a vitals / load / defenses column). Press `h` for the full-page scrollable transcript. `↑↓` pick / scroll, `Enter` select / send, `a` alert, `t` theme.
+
+![agent console example](screenshot/agent_console.gif)
 
 **`dashboard`** — a composite sci-fi HUD: boot sequence + radar sweep / energy gauges / biometrics / event log; press `t` to cycle themes.
 

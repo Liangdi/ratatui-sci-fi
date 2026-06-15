@@ -284,6 +284,33 @@ impl App {
         self.theme_idx = (self.theme_idx + 1) % THEMES.len();
     }
 
+    /// Fast-forward through boot + login so a headless capture lands in the
+    /// Console scene with a seeded transcript. (Public for the screenshot
+    /// harness, which can't drive real key events.)
+    pub fn fast_forward_to_console(&mut self) {
+        for _ in 0..BOOT_TICKS {
+            self.tick();
+        }
+        self.login_user.value = "LIANGDI".into();
+        self.engage();
+        for _ in 0..AUTH_TICKS {
+            self.tick();
+        }
+    }
+
+    /// Type `msg` into the transmit field and send it (public for the screenshot
+    /// harness).
+    pub fn transmit(&mut self, msg: &str) {
+        self.chat_input.value = msg.into();
+        self.chat_input.cursor = self.chat_input.value.chars().count();
+        self.send_message();
+    }
+
+    /// Whether the tail chat message is still streaming.
+    pub fn chat_streaming(&self) -> bool {
+        self.chat.is_streaming()
+    }
+
     /// The operator's callsign (login_user), or a fallback before login.
     fn operator(&self) -> &str {
         let v = self.login_user.value.as_str();
