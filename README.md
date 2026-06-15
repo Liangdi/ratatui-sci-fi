@@ -14,8 +14,9 @@
 ## ✨ 特性
 
 - **八大内置主题** —— Cyberpunk / Fallout / Weyland / DeepSpace / Bloodmoon / Nebula / Arctic / Sentinel,语义化调色板(`accent`/`bg`/`alert`/…),每个主题同时提供原生 `Color` 与基于 `ratatui-style` 的 CSS cascade 样式表。
-- **16 个组件** —— 11 个风格统一的基础组件 + 5 个高感官的特效组件,全部按 ratatui 0.30 的 `Widget` / `StatefulWidget` 标准实现。
+- **17 个组件** —— 12 个风格统一的基础组件 + 5 个高感官的特效组件,全部按 ratatui 0.30 的 `Widget` / `StatefulWidget` 标准实现。
 - **运行时合成音效** —— 零音频资产、零版权负担,6 个音效由纯 Rust 波形合成;`rodio` 后端,无设备时静默降级。
+- **Markdown 对话流** —— `CommLog` 的 chat 样式把每条消息渲染成**带框卡片**(user/agent 靠右/靠左区分),正文走 [pulldown-cmark](https://crates.io/crates/pulldown-cmark) 的 CommonMark 渲染(标题 / 粗斜体 / `行内代码` / 代码块 / 列表 / 引用 / 分隔线),逐字流式出现 + 可滚动 + 滚动条,默认开启的 `markdown` feature。
 - **后端无关渲染** —— 库通过 ratatui 的离屏 `Buffer` 渲染,不做任何终端 I/O;`crossterm` 作为正式依赖仅为 `TextInputState::handle_key` 提供按键事件类型(下游用 termion/termwiz 时可改用自己的事件循环)。
 - **可测试** —— 所有组件都带离屏 `Buffer` 渲染单测,无需真实终端。
 
@@ -26,10 +27,31 @@
 运行自带示例(无需额外配置):
 
 ```sh
+cargo run -p ratatui-sci-fi --example agent_console  # AI Agent 控制台(开机→登录→对话)
 cargo run -p ratatui-sci-fi --example dashboard      # 综合仪表盘(全组件)
 cargo run -p ratatui-sci-fi --example widget_gallery # 3×3 网格逐组件展示
 cargo run -p ratatui-sci-fi --example matrix_rain    # 全屏数字雨
 ```
+
+**`agent_console`** —— AI + 科幻集成示例:数字雨开机动效 → 操作员登录(代号 + 掩码口令 + 生物识别点缀 + 认证动画)→ Agent 控制台(左侧 Agent 花名册、中央 `CommLog` 对话流——**带框卡片 + Markdown 渲染**,Agent 回复逐字流式出现、右侧生命体征/负载/防御状态栏)。按 `h` 进入全屏可滚动的**对话历史**(LLM 模式 + 滚动条 + Markdown)。`↑↓` 选 Agent/滚动、`Enter` 发送、`a` 警报、`t` 切主题。
+
+> `agent_console` 控制台场景版面示意:
+
+```text
+┌──────────────────────────────────────────────────────────────────┐
+│ ▶  AEGIS // AI AGENT CONSOLE  ◀           OP LIANGDI  ● ONLINE     │
+├──────────────┬───────────────────────────────────────┬────────────┤
+│ ╔═AGENTS══╗ │ ─── NEXUS-7 // TACTICAL COORD ───      │ AGENT VITALS│
+│ ║▶● NEXUS-7║ │ NEXUS-7 ▸ Vectors locked. Standing by█│ ╱╲╱╲___╱╲   │
+│ ║ TACTICAL  ║ │ OPERATOR ▸ status report              │ SYSTEM LOAD │
+│ ║ ◆ ORACLE  ║ │ NEXUS-7 ▸ Threat board is green…      │ CPU ▰▰▰▰▱   │
+│ ║ ● ATLAS   ║ │                                       │ SECTOR SCAN │
+│ ║ ▲ NAV     ║ │           ┌─ TRANSMIT ─┐              │    ◎ 扫描    │
+│ ║ ■ VEX     ║ │           │ type…      │              │ SHIELDS ◉   │
+│ ╚══════════╝ │           └────────────┘              │ CLOAK   ◇   │
+└──────────────┴───────────────────────────────────────┴────────────┘
+```
+
 
 **`dashboard`** —— 综合科幻 HUD:开机序列 + 雷达扫描 / 能量槽 / 生命体征 / 事件列表,`t` 切换主题。
 
@@ -75,6 +97,12 @@ cargo add ratatui-sci-fi --features audio
 ```
 
 `audio` 默认关闭 —— 只想要视觉的下游不会被迫引入音频原生依赖。
+
+`markdown` 默认**开启**(引入 `pulldown-cmark`,驱动 `CommLog` 的 Markdown 对话卡片与 `Markdown` 组件)。不需要 Markdown 渲染时可关闭以精简依赖:
+
+```sh
+cargo add ratatui-sci-fi --no-default-features   # 只保留 Plain 文本流,不带 Markdown 解析器
+```
 
 ---
 
@@ -218,9 +246,10 @@ ratatui-sci-fi/                  # 单 crate(库)
 ├── src/
 │   ├── lib.rs                   # 约定 + `pub use widgets::*` 根级再导出
 │   ├── themes/                  # Palette / Theme / ratatui-style Stylesheet
-│   ├── widgets/                 # 16 个组件
+│   ├── widgets/                 # 17 个组件(含 CommLog 对话流)
 │   └── audio/                   # 目录(Sound/CATALOG)+ synth + AudioSystem
 └── examples/
+    ├── agent_console.rs         # AI Agent 控制台(开机→登录→对话流)
     ├── dashboard.rs             # 综合科幻仪表盘(全组件 + 音效)
     └── matrix_rain.rs           # 数字雨独立演示
 ```

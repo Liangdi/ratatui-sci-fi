@@ -62,7 +62,8 @@ pub const CARET_GLYPH: &str = "█";
 /// A single-line sci-fi text input.
 ///
 /// Build with [`TextInput::new`], optionally set a placeholder
-/// ([`TextInput::placeholder`]) and theme ([`TextInput::theme`]). All editable
+/// ([`TextInput::placeholder`]), a mask glyph ([`TextInput::mask`] /
+/// [`TextInput::password`]), and theme ([`TextInput::theme`]). All editable
 /// state lives in the companion [`TextInputState`].
 #[derive(Debug, Clone, Default)]
 pub struct TextInput {
@@ -71,6 +72,11 @@ pub struct TextInput {
     /// Shape of the blinking caret glyph. Defaults to
     /// [`CaretShape::Block`] (`█`), reproducing the original look.
     pub caret: CaretShape,
+    /// Optional mask glyph: when set, every value character renders as this
+    /// glyph (a password / redacted field). `None` (the default) shows the value
+    /// as typed. The underlying [`TextInputState::value`] is unaffected — only
+    /// the display is masked.
+    pub mask: Option<char>,
     /// Theme whose [`Stylesheet`](ratatui_style::Stylesheet) drives colors.
     /// Defaults to [`Theme::Cyberpunk`].
     pub theme: Theme,
@@ -93,6 +99,24 @@ impl TextInput {
     #[must_use]
     pub fn caret(mut self, caret: CaretShape) -> Self {
         self.caret = caret;
+        self
+    }
+
+    /// Mask every value character as `ch` (a password / redacted field). The
+    /// real value is still stored in [`TextInputState::value`]; only the display
+    /// changes. The caret, placeholder, and editing behavior are unaffected.
+    #[must_use]
+    pub fn mask(mut self, ch: char) -> Self {
+        self.mask = Some(ch);
+        self
+    }
+
+    /// Convenience password mode: mask every value character with the bullet
+    /// `•`. Pass `false` to clear masking. See [`TextInput::mask`] for a custom
+    /// glyph.
+    #[must_use]
+    pub fn password(mut self, on: bool) -> Self {
+        self.mask = if on { Some('•') } else { None };
         self
     }
 
@@ -292,12 +316,15 @@ impl StatefulWidget for TextInput {
             if px >= right {
                 break;
             }
+            // When masking is on (a password field), every value char renders as
+            // the mask glyph so the secret is never shown — even under the caret.
+            let glyph = self.mask.unwrap_or(ch);
             if caret_cell_is_char && i == state.cursor {
                 // Caret sits on this char: highlight it bright (caret color),
                 // keeping the glyph itself visible.
-                buf[(px, y)].set_symbol(ch.to_string().as_str()).set_style(caret_style);
+                buf[(px, y)].set_symbol(glyph.to_string().as_str()).set_style(caret_style);
             } else {
-                buf[(px, y)].set_symbol(ch.to_string().as_str()).set_style(value_style);
+                buf[(px, y)].set_symbol(glyph.to_string().as_str()).set_style(value_style);
             }
         }
 
@@ -511,5 +538,50 @@ mod tests {
             "▎",
             "Bar caret should render '▎', not the default Block '█'"
         );
+    }
+
+    #[test]
+    fn mask_default_is_none() {
+        assert!(TextInput::new().mask.is_none(), "masking must be off by default");
+    }
+
+    #[test]
+    fn password_builder_sets_bullet_mask() {
+        assert_eq!(TextInput::new().password(true).mask, Some('•'));
+        assert!(TextInput::new().password(false).mask.is_none(), "password(false) clears masking");
+        // mask() sets an arbitrary glyph.
+        assert_eq!(TextInput::new().mask('*').mask, Some('*'));
+    }
+
+    #[test]
+    fn mask_replaces_value_chars_without_leaking_them() {
+        let mut s = TextInputState::new();
+        for c in "secret".chars() {
+            s.insert_char(c);
+        }
+        // cursor is now 6 == char_count, so the caret parks on its own cell at
+        // x=6; the value cells x=0..5 must all be the mask glyph.
+        let mut buf = Buffer::empty(Rect::new(0, 0, W, H));
+        let input = TextInput::new().mask('*');
+        StatefulWidget::render(input, Rect::new(0, 0, W, H), &mut buf, &mut s);
+        for x in 0..6u16 {
+            assert_eq!(buf[(x, 0)].symbol(), "*", "value char at x={x} must be masked");
+        }
+        // The real value is intact in state — masking is display-only.
+        assert_eq!(s.value, "secret");
+    }
+
+    #[test]
+    fn mask_still_hides_char_under_the_caret() {
+        // Caret sitting ON a value char (mid-value) must show the mask glyph too,
+        // never revealing the real character.
+        let mut s = TextInputState { value: String::from("abc"), cursor: 1, blink_tick: 0 };
+        assert!(s.cursor_visible());
+        let mut buf = Buffer::empty(Rect::new(0, 0, W, H));
+        let input = TextInput::new().mask('•');
+        StatefulWidget::render(input, Rect::new(0, 0, W, H), &mut buf, &mut s);
+        // x=1 is the char under the caret (index 1) — must be the mask, not 'b'.
+        assert_eq!(buf[(1, 0)].symbol(), "•", "char under the caret must be masked");
+        assert_ne!(buf[(1, 0)].symbol(), "b");
     }
 }

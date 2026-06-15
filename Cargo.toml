@@ -11,12 +11,16 @@ categories = ["command-line-interface"]
 readme = "README.md"
 
 [features]
-default = []
+default = ["markdown"]
 # Enable the procedural audio engine (rodio + cpal backend). Off by default so
 # the widget library doesn't force native audio dev-deps on consumers that only
 # want visuals. The `Sound`/`SoundSpec`/`CATALOG` catalog is always available;
 # only `AudioSystem` playback needs this feature.
 audio = ["dep:rodio"]
+# Markdown rendering (CommonMark via pulldown-cmark) for `CommLog`'s chat style
+# — the AI-agent chatbox mode. Default-on so it works out of the box; pass
+# --no-default-features to trim it (the plain `CommLog` feed needs no parser).
+markdown = ["dep:pulldown-cmark"]
 
 [dependencies]
 ratatui = "0.30.1"
@@ -32,6 +36,7 @@ crossterm = "0.29.0"
 # player API (`DeviceSinkBuilder`/`MixerDeviceSink`/`Player`), without any of
 # the symphonia codec crates.
 rodio = { version = "0.22", default-features = false, features = ["playback"], optional = true }
+pulldown-cmark = { version = "0.13.4", optional = true }
 
 # Only the examples need a terminal/event backend; the library itself stays
 # backend-agnostic so downstream apps can pick their own.

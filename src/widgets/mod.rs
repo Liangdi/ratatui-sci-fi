@@ -25,6 +25,8 @@ pub mod heat_grid;
 pub mod hbar_chart;
 pub mod level;
 pub mod list;
+#[cfg(feature = "markdown")]
+pub mod markdown;
 pub mod matrix_rain;
 pub mod panel;
 pub mod popup;
@@ -49,7 +51,7 @@ pub use boot_sequence::{BootSequence, BootSequenceState};
 pub use button::{Button, ButtonShape};
 pub use candlestick::{CandlestickChart, CandlestickChartState, CandlestickShape, Ohlc};
 pub use caret::CaretShape;
-pub use comm_log::{CommKind, CommLog, CommLogMessage, CommLogState};
+pub use comm_log::{CommKind, CommLog, CommLogMessage, CommLogState, CommStyle};
 pub use compass::{Compass, CompassShape, CompassState};
 pub use divider::{Divider, DividerShape};
 pub use donut_chart::{DonutChart, DonutChartState, DonutShape};
@@ -59,6 +61,8 @@ pub use heat_grid::{HeatGrid, HeatGridState, HeatShape};
 pub use hbar_chart::{HBarChart, HBarChartState, HBarShape};
 pub use level::Level;
 pub use list::{ScanList, ScanListState};
+#[cfg(feature = "markdown")]
+pub use markdown::{markdown_to_lines, Markdown};
 pub use matrix_rain::{MatrixRain, MatrixRainState, MatrixShape};
 pub use panel::{Panel, PanelShape};
 pub use popup::{AlertPopup, AlertPopupState, PopupShape};
