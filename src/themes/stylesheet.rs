@@ -105,6 +105,43 @@ const COMPONENT_CSS: &str = r#"
     Heat.grid   { color: var(--muted); }
     Heat.hot    { color: var(--alert); }
 
+    /* Donut chart — multi-slice proportional ring (canvas-drawn). Base drives
+       the rim/center + background; grid colors the depth ring; slice colors
+       cycle the palette tokens, mirroring Biometric.trace0..4. */
+    Donut         { color: var(--accent); background: var(--bg); }
+    Donut.grid    { color: var(--muted); }
+    Donut.slice0  { color: var(--accent); }
+    Donut.slice1  { color: var(--accent2); }
+    Donut.slice2  { color: var(--ok); }
+    Donut.slice3  { color: var(--warn); }
+    Donut.slice4  { color: var(--alert); }
+
+    /* Scatter plot — Cartesian point cloud (canvas-drawn). Base supplies the
+       grid color + background; point colors normal blips; hot escalates points
+       in the outer region to alert. */
+    Scatter        { color: var(--muted); background: var(--bg); }
+    Scatter.point  { color: var(--accent); }
+    Scatter.hot    { color: var(--alert); }
+
+    /* Horizontal bar chart — category-comparison bars. Level classes color each
+       bar by its value (ok nominal → warn mid → alert low, matching Spectrum);
+       empty colors the unfilled cells; label colors the category name. */
+    HBar        { color: var(--accent); background: var(--bg); }
+    HBar.ok     { color: var(--ok); }
+    HBar.warn   { color: var(--warn); }
+    HBar.alert  { color: var(--alert); }
+    HBar.empty  { color: var(--muted); }
+    HBar.label  { color: var(--fg); }
+
+    /* Sparkline — compact single-value trend line. The line tint follows the
+       latest sample's level (ok/warn/alert); grid would color an axis if one
+       were drawn (it isn't, for a clean sparkline). */
+    Spark        { color: var(--accent); }
+    Spark.ok     { color: var(--ok); }
+    Spark.warn   { color: var(--warn); }
+    Spark.alert  { color: var(--alert); }
+    Spark.grid   { color: var(--muted); }
+
     /* Scan list — selected row gets an accent-on-panel highlight. */
     List          { color: var(--fg); }
     List.selected { color: var(--accent); background: var(--panel); }

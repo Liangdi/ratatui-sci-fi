@@ -1,10 +1,13 @@
-//! **Charts** — a dedicated gallery for the three sci-fi chart widgets:
-//! [`SpectrumBars`] (animated spectrum analyzer), [`RadialGauge`] (reactor
-//! dial), and [`HeatGrid`] (sensor-array heatmap). All three animate every
-//! frame in their self-generated demo mode.
+//! **Charts** — the sci-fi data-viz gallery: seven animated chart widgets side
+//! by side. The original three ([`SpectrumBars`] analyzer, [`RadialGauge`]
+//! reactor dial, [`HeatGrid`] heatmap) plus four common chart types:
+//! [`Sparkline`] (compact trend line), [`DonutChart`] (proportions),
+//! [`HBarChart`] (horizontal comparison bars), and [`ScatterPlot`] (X/Y point
+//! cloud). Every widget animates each frame in self-generated demo mode.
 //!
-//! Layout: the **SPECTRUM** panel (left) and the **REACTOR** dial (right) sit
-//! on the top row; the **SENSOR ARRAY** heatmap fills the bottom.
+//! Layout: three two-up rows of panels over the full-width sensor-array
+//! heatmap — **SPECTRUM / REACTOR**, **TREND / ALLOCATIONS**,
+//! **SUBSYSTEMS / CONTACTS**, then **SENSOR ARRAY**.
 //!
 //! `t` cycles all eight themes · `s` cycles each widget's shape variant in
 //! lockstep · `q` / `Esc` quits.
@@ -29,8 +32,10 @@ use ratatui::{
     Terminal,
 };
 use ratatui_sci_fi::{
-    DialShape, HeatGrid, HeatGridState, HeatShape, Panel, RadialGauge, RadialGaugeState,
-    SpectrumBars, SpectrumBarsState, SpectrumShape, Theme,
+    DialShape, DonutChart, DonutChartState, DonutShape, HBarChart, HBarChartState, HBarShape,
+    HeatGrid, HeatGridState, HeatShape, Panel, RadialGauge, RadialGaugeState, ScatterPlot,
+    ScatterPlotState, ScatterShape, SparkShape, Sparkline, SparklineState, SpectrumBars,
+    SpectrumBarsState, SpectrumShape, Theme,
 };
 
 type Term = Terminal<CrosstermBackend<Stdout>>;
@@ -57,12 +62,36 @@ const DIAL_SHAPES: [DialShape; 3] = [DialShape::Needle, DialShape::Arc, DialShap
 const HEAT_SHAPES: [HeatShape; 4] =
     [HeatShape::Block, HeatShape::Shade, HeatShape::Ascii, HeatShape::Dot];
 
+/// Every [`SparkShape`], in display order.
+const SPARK_SHAPES: [SparkShape; 3] = [SparkShape::Line, SparkShape::Block, SparkShape::Dot];
+
+/// Every [`DonutShape`], in display order.
+const DONUT_SHAPES: [DonutShape; 3] = [DonutShape::Arc, DonutShape::Thick, DonutShape::Tick];
+
+/// Every [`HBarShape`], in display order.
+const HBAR_SHAPES: [HBarShape; 3] = [HBarShape::Cell, HBarShape::Block, HBarShape::Ascii];
+
+/// Every [`ScatterShape`], in display order.
+const SCATTER_SHAPES: [ScatterShape; 3] =
+    [ScatterShape::Dot, ScatterShape::Cross, ScatterShape::Ring];
+
+/// Number of slices in the [`DonutChart`] demo.
+const DONUT_SLICES: usize = 5;
+/// Number of categories in the [`HBarChart`] demo.
+const HBAR_ROWS: usize = 4;
+/// Number of points in the [`ScatterPlot`] demo.
+const SCATTER_POINTS: usize = 24;
+
 pub struct App {
     theme_idx: usize,
     shape_idx: usize,
     spectrum: SpectrumBarsState,
     dial: RadialGaugeState,
     heat: HeatGridState,
+    spark: SparklineState,
+    donut: DonutChartState,
+    hbar: HBarChartState,
+    scatter: ScatterPlotState,
 }
 
 impl App {
@@ -73,6 +102,10 @@ impl App {
             spectrum: SpectrumBarsState::new(16, 64),
             dial: RadialGaugeState::new(),
             heat: HeatGridState::new(7, 40),
+            spark: SparklineState::new(64),
+            donut: DonutChartState::new(DONUT_SLICES),
+            hbar: HBarChartState::new(HBAR_ROWS),
+            scatter: ScatterPlotState::new(SCATTER_POINTS),
         }
     }
 
@@ -103,12 +136,36 @@ impl App {
         HEAT_SHAPES[self.shape_idx % HEAT_SHAPES.len()]
     }
 
+    /// The [`SparkShape`] for the current shape index.
+    pub fn spark_shape(&self) -> SparkShape {
+        SPARK_SHAPES[self.shape_idx % SPARK_SHAPES.len()]
+    }
+
+    /// The [`DonutShape`] for the current shape index.
+    pub fn donut_shape(&self) -> DonutShape {
+        DONUT_SHAPES[self.shape_idx % DONUT_SHAPES.len()]
+    }
+
+    /// The [`HBarShape`] for the current shape index.
+    pub fn hbar_shape(&self) -> HBarShape {
+        HBAR_SHAPES[self.shape_idx % HBAR_SHAPES.len()]
+    }
+
+    /// The [`ScatterShape`] for the current shape index.
+    pub fn scatter_shape(&self) -> ScatterShape {
+        SCATTER_SHAPES[self.shape_idx % SCATTER_SHAPES.len()]
+    }
+
     /// Advance every widget's animation by one tick. Called once per frame so
-    /// the spectrum, dial, and heatmap all move on their own (demo mode).
+    /// all seven widgets move on their own (demo mode).
     pub fn tick(&mut self) {
         self.spectrum.tick();
         self.dial.tick();
         self.heat.tick();
+        self.spark.tick();
+        self.donut.tick();
+        self.hbar.tick();
+        self.scatter.tick();
     }
 }
 
@@ -151,16 +208,20 @@ pub fn draw(f: &mut ratatui::Frame<'_>, app: &mut App) {
 
     let outer = Layout::vertical([
         Constraint::Length(3),
-        Constraint::Length(13),
+        Constraint::Length(11),
+        Constraint::Length(11),
+        Constraint::Length(11),
         Constraint::Min(1),
         Constraint::Length(1),
     ])
     .split(area);
 
     render_title(f, theme, outer[0]);
-    render_top_row(f, app, outer[1]);
-    render_heat(f, app, outer[2]);
-    render_footer(f, app, outer[3]);
+    render_pair(f, app, outer[1], render_spectrum, render_dial);
+    render_pair(f, app, outer[2], render_spark, render_donut);
+    render_pair(f, app, outer[3], render_hbar, render_scatter);
+    render_heat(f, app, outer[4]);
+    render_footer(f, app, outer[5]);
 }
 
 /// Centered header title.
@@ -176,12 +237,18 @@ fn render_title(f: &mut ratatui::Frame<'_>, theme: Theme, area: Rect) {
     );
 }
 
-/// Top row: the spectrum analyzer (left) beside the reactor dial (right).
-fn render_top_row(f: &mut ratatui::Frame<'_>, app: &mut App, area: Rect) {
+/// A two-up panel row: `left` (58%) beside `right` (42%).
+fn render_pair(
+    f: &mut ratatui::Frame<'_>,
+    app: &mut App,
+    area: Rect,
+    left: fn(&mut ratatui::Frame<'_>, &mut App, Rect),
+    right: fn(&mut ratatui::Frame<'_>, &mut App, Rect),
+) {
     let cols =
         Layout::horizontal([Constraint::Percentage(58), Constraint::Percentage(42)]).split(area);
-    render_spectrum(f, app, cols[0]);
-    render_dial(f, app, cols[1]);
+    left(f, app, cols[0]);
+    right(f, app, cols[1]);
 }
 
 /// The animated vertical-bar spectrum analyzer.
@@ -212,6 +279,66 @@ fn render_dial(f: &mut ratatui::Frame<'_>, app: &mut App, area: Rect) {
     );
 }
 
+/// The compact single-value trend line.
+fn render_spark(f: &mut ratatui::Frame<'_>, app: &mut App, area: Rect) {
+    let theme = app.theme();
+    let shape = app.spark_shape();
+    let panel = Panel::new().title("TREND").theme(theme);
+    let content = panel.inner(area);
+    f.render_widget(panel, area);
+    f.render_stateful_widget(
+        Sparkline::new().shape(shape).theme(theme),
+        content,
+        &mut app.spark,
+    );
+}
+
+/// The multi-slice proportional ring.
+fn render_donut(f: &mut ratatui::Frame<'_>, app: &mut App, area: Rect) {
+    let theme = app.theme();
+    let shape = app.donut_shape();
+    let panel = Panel::new().title("ALLOCATIONS").theme(theme);
+    let content = panel.inner(area);
+    f.render_widget(panel, area);
+    f.render_stateful_widget(
+        DonutChart::new().slices(DONUT_SLICES).shape(shape).theme(theme),
+        content,
+        &mut app.donut,
+    );
+}
+
+/// The horizontal category-comparison bars.
+fn render_hbar(f: &mut ratatui::Frame<'_>, app: &mut App, area: Rect) {
+    let theme = app.theme();
+    let shape = app.hbar_shape();
+    let panel = Panel::new().title("SUBSYSTEMS").theme(theme);
+    let content = panel.inner(area);
+    f.render_widget(panel, area);
+    f.render_stateful_widget(
+        HBarChart::new()
+            .categories(["ALPHA", "BETA", "GAMMA", "DELTA"])
+            .label_width(6)
+            .shape(shape)
+            .theme(theme),
+        content,
+        &mut app.hbar,
+    );
+}
+
+/// The X/Y point cloud.
+fn render_scatter(f: &mut ratatui::Frame<'_>, app: &mut App, area: Rect) {
+    let theme = app.theme();
+    let shape = app.scatter_shape();
+    let panel = Panel::new().title("CONTACTS").theme(theme);
+    let content = panel.inner(area);
+    f.render_widget(panel, area);
+    f.render_stateful_widget(
+        ScatterPlot::new().capacity(SCATTER_POINTS).shape(shape).theme(theme),
+        content,
+        &mut app.scatter,
+    );
+}
+
 /// The bottom sensor-array heatmap.
 fn render_heat(f: &mut ratatui::Frame<'_>, app: &mut App, area: Rect) {
     let theme = app.theme();
@@ -229,17 +356,20 @@ fn render_heat(f: &mut ratatui::Frame<'_>, app: &mut App, area: Rect) {
 fn render_footer(f: &mut ratatui::Frame<'_>, app: &App, area: Rect) {
     let theme = app.theme();
     let name = format!("{:?}", theme);
-    let shapes = format!(
-        "spec={:?} dial={:?} heat={:?}",
+    // Controls first so they survive clipping on narrow terminals; the
+    // per-widget shape readout trails and may clip on the right.
+    let line = format!(
+        " [t] theme:{name:<11} [s] shape [q] quit   spec={:?} dial={:?} heat={:?} spark={:?} donut={:?} hbar={:?} scatter={:?}",
         app.spectrum_shape(),
         app.dial_shape(),
         app.heat_shape(),
+        app.spark_shape(),
+        app.donut_shape(),
+        app.hbar_shape(),
+        app.scatter_shape(),
     );
     f.render_widget(
-        Paragraph::new(format!(
-            " [t] theme: {name:<11} [s] shape: {shapes}   [q] quit"
-        ))
-        .style(Style::new().fg(theme.palette().muted.color())),
+        Paragraph::new(line).style(Style::new().fg(theme.palette().muted.color())),
         area,
     );
 }
