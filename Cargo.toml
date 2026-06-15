@@ -14,9 +14,9 @@ categories = ["command-line-interface"]
 
 [workspace.dependencies]
 ratatui = "0.30.1"
-ratatui-style = "0.1.2"
+ratatui-style = "0.2.0"
 crossterm = "0.29.0"
-rodio = { version = "0.20", default-features = false }
+rodio = { version = "0.22", default-features = false }
 
 [profile.release]
 lto = true
