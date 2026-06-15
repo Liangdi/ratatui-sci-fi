@@ -38,10 +38,14 @@ mod dashboard;
 #[path = "matrix_rain.rs"]
 mod matrix_rain;
 #[allow(dead_code, unused_imports)]
+#[path = "button.rs"]
+mod button;
+#[allow(dead_code, unused_imports)]
 #[path = "widget_gallery.rs"]
 mod widget_gallery;
 
 // Re-export the example modules under the names the scene table uses.
+use button as scene_button;
 use dashboard as scene_dashboard;
 use matrix_rain as scene_matrix_rain;
 use widget_gallery as scene_widget_gallery;
@@ -511,6 +515,27 @@ fn main() -> std::io::Result<()> {
             scene_matrix_rain::App::tick,
             scene_matrix_rain::App::cycle_theme,
             |a: &scene_matrix_rain::App| a.theme(),
+        )?;
+    }
+
+    // Static showcase — cycle through all 8 themes so the GIF shows every shape
+    // variant in every palette. `tick` is a no-op (the layout doesn't animate).
+    if selected("button") {
+        run_scene(
+            "button",
+            92,
+            26,
+            1,
+            24, // 8 themes × 3 frames
+            fps,
+            3, // new theme every 3 frames
+            metrics,
+            &fonts,
+            scene_button::App::new,
+            scene_button::draw,
+            scene_button::App::tick,
+            scene_button::App::cycle_theme,
+            |a: &scene_button::App| a.theme(),
         )?;
     }
 
