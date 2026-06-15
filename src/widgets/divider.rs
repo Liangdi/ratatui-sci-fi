@@ -26,8 +26,48 @@ use ratatui_style::{ComputeScratch, NodeRef};
 
 use crate::Theme;
 
-/// Glyph for the rule. Shared with `ScanList`'s per-row scanline.
-const RULE_GLYPH: char = '─';
+/// Glyph for the rule. Shared with `ScanList`'s per-row scanline. This is the
+/// same glyph returned by [`DividerShape::Single::rule`] and is kept public so
+/// external code can refer to the canonical single-line glyph.
+pub const RULE_GLYPH: char = '─';
+
+/// Visual form of a [`Divider`]'s rule line.
+///
+/// Selects the glyph used to fill the divider row (and to flank a centered
+/// label); colors stay on the CSS cascade (`Scanline` / `Value`), untouched by
+/// this enum. The [`DividerShape::Single`] default reproduces the original
+/// `─`-based rule byte-for-byte, so existing tests pass unchanged.
+///
+/// Every rule glyph is Unicode width-1 (see convention #5 at the crate root),
+/// keeping the label centering math valid.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum DividerShape {
+    /// `─` — the original single-line rule.
+    #[default]
+    Single,
+    /// `═` — double-line rule.
+    Double,
+    /// `━` — heavy block rule.
+    Heavy,
+    /// `·` — dotted rule.
+    Dotted,
+    /// `-` — plain ASCII rule.
+    Ascii,
+}
+
+impl DividerShape {
+    /// The rule glyph for this shape.
+    #[must_use]
+    pub const fn rule(self) -> char {
+        match self {
+            Self::Single => RULE_GLYPH,
+            Self::Double => '═',
+            Self::Heavy => '━',
+            Self::Dotted => '·',
+            Self::Ascii => '-',
+        }
+    }
+}
 
 /// A full-width horizontal rule, optionally with a centered label.
 ///
@@ -40,6 +80,9 @@ const RULE_GLYPH: char = '─';
 pub struct Divider {
     /// Optional centered label punched through the rule.
     pub label: Option<String>,
+    /// Rule-glyph form. Defaults to [`DividerShape::Single`], the original
+    /// `─`-based rule look.
+    pub shape: DividerShape,
     /// Theme whose [`Stylesheet`](ratatui_style::Stylesheet) drives the rule
     /// color. Defaults to [`Theme::Cyberpunk`].
     pub theme: Theme,
@@ -55,6 +98,13 @@ impl Divider {
     #[must_use]
     pub fn label(mut self, label: impl Into<String>) -> Self {
         self.label = Some(label.into());
+        self
+    }
+
+    /// Set the rule-glyph form (see [`DividerShape`]).
+    #[must_use]
+    pub fn shape(mut self, shape: DividerShape) -> Self {
+        self.shape = shape;
         self
     }
 
@@ -80,6 +130,7 @@ impl Widget for Divider {
 
         let mut scratch = ComputeScratch::new();
         let rule_style = self.rule_style(&mut scratch);
+        let rule = self.shape.rule();
 
         let y = area.y + area.height / 2;
 
@@ -87,7 +138,7 @@ impl Widget for Divider {
             None => {
                 // Plain full-width rule.
                 for x in area.x..area.x + area.width {
-                    buf[(x, y)].set_char(RULE_GLYPH).set_style(rule_style);
+                    buf[(x, y)].set_char(rule).set_style(rule_style);
                 }
             }
             Some(label) => {
@@ -101,7 +152,7 @@ impl Widget for Divider {
                 // Left flanking rule.
                 for x in 0..left_pad {
                     let px = area.x + x;
-                    buf[(px, y)].set_char(RULE_GLYPH).set_style(rule_style);
+                    buf[(px, y)].set_char(rule).set_style(rule_style);
                 }
 
                 // Centered label in the theme foreground (the `Value` rule),
@@ -122,7 +173,7 @@ impl Widget for Divider {
 
                 // Right flanking rule fills whatever remains.
                 while lx < right {
-                    buf[(lx, y)].set_char(RULE_GLYPH).set_style(rule_style);
+                    buf[(lx, y)].set_char(rule).set_style(rule_style);
                     lx += 1;
                 }
             }
@@ -197,5 +248,22 @@ mod tests {
         let mut buf = Buffer::empty(Rect::new(0, 0, 0, 0));
         Divider::new().label("X").render(Rect::new(0, 0, 0, 0), &mut buf);
         assert_eq!(*buf.area(), Rect::new(0, 0, 0, 0));
+    }
+
+    #[test]
+    fn non_default_shape_changes_rule_glyph() {
+        // The Double shape renders '═' rule cells (including the flanks around
+        // a centered label) and never the default '─'.
+        let buf = render(Divider::new().label("X").shape(DividerShape::Double));
+        let middle = H / 2;
+        let symbols: Vec<&str> = (0..W).map(|x| buf[(x, middle)].symbol()).collect();
+        assert!(
+            symbols.contains(&"═"),
+            "Double shape should contain '═' rule cells: {symbols:?}"
+        );
+        assert!(
+            !symbols.contains(&"─"),
+            "Double shape must not contain the default '─': {symbols:?}"
+        );
     }
 }

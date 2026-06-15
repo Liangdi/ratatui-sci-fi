@@ -35,8 +35,55 @@ use ratatui::{
 use ratatui::style::Color;
 use ratatui_style::{ComputeScratch, NodeRef};
 
-const FILLED: &str = "▰";
-const EMPTY: &str = "▱";
+pub const FILLED: &str = "▰";
+pub const EMPTY: &str = "▱";
+
+/// Visual form of an [`EnergyGauge`]'s reactor cells.
+///
+/// Selects the glyph pair used for filled vs. empty segments; colors stay on
+/// the CSS cascade (`Gauge` / `Gauge.ok`|`Gauge.warn`|`Gauge.alert` /
+/// `Gauge.empty`), untouched by this enum. The [`GaugeShape::Cell`] default
+/// reproduces the original `▰` / `▱` look byte-for-byte, so existing tests
+/// pass unchanged.
+///
+/// Every glyph is Unicode width-1 (see convention #5 at the crate root),
+/// keeping the gauge's per-cell segment math valid.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum GaugeShape {
+    /// `▰` filled, `▱` empty — the original reactor-cell look.
+    #[default]
+    Cell,
+    /// `█` filled, `▒` empty — solid block bar.
+    Block,
+    /// `#` filled, `-` empty — plain ASCII bar.
+    Ascii,
+    /// `▓` filled, `░` empty — shaded bar.
+    Shade,
+}
+
+impl GaugeShape {
+    /// The glyph for a filled segment.
+    #[must_use]
+    pub const fn filled(self) -> &'static str {
+        match self {
+            Self::Cell => FILLED,
+            Self::Block => "█",
+            Self::Ascii => "#",
+            Self::Shade => "▓",
+        }
+    }
+
+    /// The glyph for an empty segment.
+    #[must_use]
+    pub const fn empty(self) -> &'static str {
+        match self {
+            Self::Cell => EMPTY,
+            Self::Block => "▒",
+            Self::Ascii => "-",
+            Self::Shade => "░",
+        }
+    }
+}
 
 /// A segmented reactor energy gauge.
 ///
@@ -56,13 +103,16 @@ pub struct EnergyGauge {
     pub ratio: f64,
     /// Number of reactor cells in the bar. Default `16`.
     pub segments: u16,
+    /// Cell-glyph form (filled/empty glyphs). Defaults to
+    /// [`GaugeShape::Cell`], the original `▰`/`▱` look.
+    pub shape: GaugeShape,
     /// Theme whose palette drives the bar/label colors. Default [`Theme::Cyberpunk`].
     pub theme: Theme,
 }
 
 impl Default for EnergyGauge {
     fn default() -> Self {
-        Self { label: None, ratio: 0.0, segments: 16, theme: Theme::Cyberpunk }
+        Self { label: None, ratio: 0.0, segments: 16, shape: GaugeShape::default(), theme: Theme::Cyberpunk }
     }
 }
 
@@ -90,6 +140,13 @@ impl EnergyGauge {
     #[must_use]
     pub fn segments(mut self, segments: u16) -> Self {
         self.segments = segments;
+        self
+    }
+
+    /// Set the cell-glyph form (see [`GaugeShape`]).
+    #[must_use]
+    pub fn shape(mut self, shape: GaugeShape) -> Self {
+        self.shape = shape;
         self
     }
 
@@ -180,7 +237,7 @@ impl Widget for EnergyGauge {
             if x >= right {
                 break;
             }
-            let glyph = if i < filled { FILLED } else { EMPTY };
+            let glyph = if i < filled { self.shape.filled() } else { self.shape.empty() };
             let style = if i < filled { bar_style } else { empty_style };
             buf[(x, y)].set_symbol(glyph).set_style(style);
             x += 1;
@@ -333,5 +390,24 @@ mod tests {
         let g = EnergyGauge::new(0.5).theme(Theme::Weyland);
         assert_eq!(g.theme, Theme::Weyland);
         assert_eq!(g.bar_color(), Theme::Weyland.palette().warn.color());
+    }
+
+    #[test]
+    fn block_shape_uses_block_glyphs() {
+        let mut buf = Buffer::empty(Rect::new(0, 0, W, H));
+        EnergyGauge::new(1.0)
+            .segments(4)
+            .shape(GaugeShape::Block)
+            .render(Rect::new(0, 0, W, H), &mut buf);
+
+        let text: String = (0..4).map(|x| cell_symbol(&buf, x, 0).to_string()).collect();
+        assert!(
+            text.contains('█'),
+            "Block shape should render filled '█' cells: {text:?}"
+        );
+        assert!(
+            !text.contains('▰'),
+            "Block shape must not render the Cell glyph '▰': {text:?}"
+        );
     }
 }

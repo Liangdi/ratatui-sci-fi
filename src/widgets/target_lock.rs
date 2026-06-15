@@ -48,17 +48,105 @@ use crate::Theme;
 const THICKNESS: u16 = 1;
 
 /// Top-left corner glyph.
-const CORNER_TL: &str = "┏";
+pub const CORNER_TL: &str = "┏";
 /// Top-right corner glyph.
-const CORNER_TR: &str = "┓";
+pub const CORNER_TR: &str = "┓";
 /// Bottom-left corner glyph.
-const CORNER_BL: &str = "┗";
+pub const CORNER_BL: &str = "┗";
 /// Bottom-right corner glyph.
-const CORNER_BR: &str = "┛";
+pub const CORNER_BR: &str = "┛";
 /// Horizontal arm glyph used for the broken-bracket look.
-const ARM_H: &str = "━";
+pub const ARM_H: &str = "━";
 /// Center crosshair glyph.
-const CROSSHAIR: &str = "✛";
+pub const CROSSHAIR: &str = "✛";
+
+/// The full set of glyphs a [`TargetShape`] paints, as static strings ready
+/// for `Buffer::set_symbol` / [`TargetLock::paint`].
+///
+/// Every field is a Unicode width-1 glyph (see convention #5 at the crate
+/// root), keeping the frame's single-cell-per-position layout valid.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct TargetGlyphs {
+    /// Top-left corner glyph.
+    pub corner_tl: &'static str,
+    /// Top-right corner glyph.
+    pub corner_tr: &'static str,
+    /// Bottom-left corner glyph.
+    pub corner_bl: &'static str,
+    /// Bottom-right corner glyph.
+    pub corner_br: &'static str,
+    /// Horizontal arm glyph used for the broken-bracket look.
+    pub arm: &'static str,
+    /// Center crosshair glyph.
+    pub crosshair: &'static str,
+}
+
+/// Visual form of a [`TargetLock`]'s reticle.
+///
+/// Selects the corner-bracket, arm, and crosshair glyphs; colors stay on the
+/// CSS cascade (`Target` / `Target.crosshair`), untouched by this enum. The
+/// [`TargetShape::Heavy`] default reproduces the original box-drawing look
+/// byte-for-byte, so existing tests pass unchanged.
+///
+/// Every glyph is Unicode width-1 (see convention #5 at the crate root),
+/// keeping the frame's single-cell-per-position layout valid.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum TargetShape {
+    /// `┏ ┓ ┗ ┛` corners, `━` arms, `✛` crosshair — the original look.
+    #[default]
+    Heavy,
+    /// `┌ ┐ └ ┘` corners, `─` arms, `+` crosshair.
+    Light,
+    /// `╔ ╗ ╚ ╝` corners, `═` arms, `✛` crosshair.
+    Double,
+    /// `╭ ╮ ╰ ╯` corners, `─` arms, `○` crosshair.
+    Round,
+}
+
+impl TargetShape {
+    /// Resolve this shape into its concrete glyph set.
+    ///
+    /// `Heavy` (the default) returns exactly the module's `pub const`
+    /// glyphs (`CORNER_TL` … `CROSSHAIR`), so the default appearance is
+    /// byte-for-byte identical to the pre-shape-variant render.
+    #[must_use]
+    pub const fn glyphs(self) -> TargetGlyphs {
+        match self {
+            Self::Heavy => TargetGlyphs {
+                corner_tl: CORNER_TL,
+                corner_tr: CORNER_TR,
+                corner_bl: CORNER_BL,
+                corner_br: CORNER_BR,
+                arm: ARM_H,
+                crosshair: CROSSHAIR,
+            },
+            Self::Light => TargetGlyphs {
+                corner_tl: "┌",
+                corner_tr: "┐",
+                corner_bl: "└",
+                corner_br: "┘",
+                arm: "─",
+                crosshair: "+",
+            },
+            Self::Double => TargetGlyphs {
+                corner_tl: "╔",
+                corner_tr: "╗",
+                corner_bl: "╚",
+                corner_br: "╝",
+                arm: "═",
+                crosshair: "✛",
+            },
+            Self::Round => TargetGlyphs {
+                corner_tl: "╭",
+                corner_tr: "╮",
+                corner_bl: "╰",
+                corner_br: "╯",
+                arm: "─",
+                crosshair: "○",
+            },
+        }
+    }
+}
 
 /// A target-lock HUD frame.
 ///
@@ -79,6 +167,9 @@ const CROSSHAIR: &str = "✛";
 pub struct TargetLock {
     /// Optional title shown near the top edge of the frame.
     pub title: Option<String>,
+    /// Reticle glyph set (corners / arms / crosshair). Defaults to
+    /// [`TargetShape::Heavy`], the original box-drawing look.
+    pub shape: TargetShape,
     /// Active theme (default [`Theme::Cyberpunk`]).
     pub theme: Theme,
 }
@@ -93,6 +184,13 @@ impl TargetLock {
     #[must_use]
     pub fn title(mut self, title: impl Into<String>) -> Self {
         self.title = Some(title.into());
+        self
+    }
+
+    /// Set the reticle glyph form (see [`TargetShape`]).
+    #[must_use]
+    pub fn shape(mut self, shape: TargetShape) -> Self {
+        self.shape = shape;
         self
     }
 
@@ -144,6 +242,11 @@ impl Widget for TargetLock {
             .compute_with(&NodeRef::new("Target").classes(&["crosshair"]), None, &mut scratch)
             .to_style();
 
+        // Resolve the reticle glyphs from the configured shape. The `Heavy`
+        // default returns the module's `pub const` values, so default
+        // appearance is byte-for-byte identical to the pre-shape render.
+        let g = self.shape.glyphs();
+
         // Degenerate area: nothing meaningful to draw.
         if area.width == 0 || area.height == 0 {
             return;
@@ -151,7 +254,7 @@ impl Widget for TargetLock {
 
         // Single-cell area: just the crosshair if it lands on the only cell.
         if area.width == 1 && area.height == 1 {
-            Self::paint(buf, area, area.x, area.y, CROSSHAIR, crosshair_style);
+            Self::paint(buf, area, area.x, area.y, g.crosshair, crosshair_style);
             return;
         }
 
@@ -161,10 +264,10 @@ impl Widget for TargetLock {
         let top = area.top();
         let bottom = area.bottom().saturating_sub(1);
 
-        Self::paint(buf, area, left, top, CORNER_TL, bracket_style);
-        Self::paint(buf, area, right, top, CORNER_TR, bracket_style);
-        Self::paint(buf, area, left, bottom, CORNER_BL, bracket_style);
-        Self::paint(buf, area, right, bottom, CORNER_BR, bracket_style);
+        Self::paint(buf, area, left, top, g.corner_tl, bracket_style);
+        Self::paint(buf, area, right, top, g.corner_tr, bracket_style);
+        Self::paint(buf, area, left, bottom, g.corner_bl, bracket_style);
+        Self::paint(buf, area, right, bottom, g.corner_br, bracket_style);
 
         // Broken-bracket arms: a short run inward from each corner along the
         // top and bottom edges (1–2 cells). Only when there is room between the
@@ -173,17 +276,17 @@ impl Widget for TargetLock {
         if inner_span > 0 {
             let arm = u16::min(2, inner_span);
             for dx in 1..=arm {
-                Self::paint(buf, area, left.saturating_add(dx), top, ARM_H, bracket_style);
-                Self::paint(buf, area, right.saturating_sub(dx), top, ARM_H, bracket_style);
-                Self::paint(buf, area, left.saturating_add(dx), bottom, ARM_H, bracket_style);
-                Self::paint(buf, area, right.saturating_sub(dx), bottom, ARM_H, bracket_style);
+                Self::paint(buf, area, left.saturating_add(dx), top, g.arm, bracket_style);
+                Self::paint(buf, area, right.saturating_sub(dx), top, g.arm, bracket_style);
+                Self::paint(buf, area, left.saturating_add(dx), bottom, g.arm, bracket_style);
+                Self::paint(buf, area, right.saturating_sub(dx), bottom, g.arm, bracket_style);
             }
         }
 
         // Center crosshair (muted, so overlaid content stays readable).
         let cx = area.x + area.width / 2;
         let cy = area.y + area.height / 2;
-        Self::paint(buf, area, cx, cy, CROSSHAIR, crosshair_style);
+        Self::paint(buf, area, cx, cy, g.crosshair, crosshair_style);
 
         // Optional title near the top edge, centered over the inner span.
         if let Some(title) = self.title.as_deref()
@@ -222,6 +325,27 @@ mod tests {
         assert_eq!(buf[(9, 0)].symbol(), CORNER_TR, "top-right corner");
         assert_eq!(buf[(0, 5)].symbol(), CORNER_BL, "bottom-left corner");
         assert_eq!(buf[(9, 5)].symbol(), CORNER_BR, "bottom-right corner");
+    }
+
+    #[test]
+    fn light_shape_uses_light_corners() {
+        // 10 wide x 6 tall, origin (0,0). The Light shape paints the light
+        // top-left corner `┌` at (0,0) and must NOT show the heavy `┏`.
+        let area = Rect::new(0, 0, 10, 6);
+        let widget = TargetLock::new().shape(TargetShape::Light);
+        let mut buf = Buffer::empty(area);
+        widget.render(area, &mut buf);
+
+        assert_eq!(
+            buf[(0, 0)].symbol(),
+            "┌",
+            "Light top-left corner should be '┌'"
+        );
+        assert_ne!(
+            buf[(0, 0)].symbol(),
+            CORNER_TL,
+            "Light top-left must not be the heavy '┏'"
+        );
     }
 
     #[test]

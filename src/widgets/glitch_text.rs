@@ -50,6 +50,42 @@ pub const GLYPH_POOL: &[char] = &[
     '<', '>', '*', '+', '=', '~',
 ];
 
+/// Visual form of a [`GlitchText`]'s corruption glyphs.
+///
+/// Selects the pool of width-1 glyphs drawn during a glitch burst. Colors stay
+/// on the CSS cascade (`Glitch` / `Glitch.corrupt`), untouched by this enum.
+/// The [`GlitchShape::KatakanaNoise`] default returns the existing
+/// [`GLYPH_POOL`] const — reproducing the original "corrupted decode" look
+/// byte-for-byte, so existing tests pass unchanged.
+///
+/// Every member glyph is Unicode width-1 (see convention #5 at the crate
+/// root), so each corruption glyph slots cleanly into one [`Buffer`] cell.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum GlitchShape {
+    /// Half-width katakana + ASCII noise — the original look. Returns the
+    /// existing [`GLYPH_POOL`] const.
+    #[default]
+    KatakanaNoise,
+    /// Binary noise — only `'0'` and `'1'`.
+    Binary,
+    /// Hexadecimal noise — `0-9` and `A-F`.
+    Hex,
+}
+
+impl GlitchShape {
+    /// The glyph pool this shape draws corruption glyphs from.
+    #[must_use]
+    pub const fn pool(self) -> &'static [char] {
+        match self {
+            Self::KatakanaNoise => GLYPH_POOL,
+            Self::Binary => &['0', '1'],
+            Self::Hex => &[
+                '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F',
+            ],
+        }
+    }
+}
+
 /// How many [`GlitchTextState::tick`] calls elapse between glitch re-rolls.
 ///
 /// A re-roll happens every `REROLL_PERIOD` ticks: the mask of glitched positions
@@ -83,6 +119,9 @@ pub struct GlitchText {
     /// Expected fraction of character positions glitched during a burst,
     /// in `0.0..=1.0`. Higher = denser corruption.
     pub intensity: f32,
+    /// Glyph-pool form for corruption (see [`GlitchShape`]). Defaults to
+    /// [`GlitchShape::KatakanaNoise`], the original katakana+ASCII look.
+    pub shape: GlitchShape,
     /// Active theme; controls all colors via its [`Palette`](crate::Palette).
     pub theme: Theme,
 }
@@ -92,6 +131,7 @@ impl Default for GlitchText {
         Self {
             text: String::new(),
             intensity: DEFAULT_INTENSITY,
+            shape: GlitchShape::default(),
             theme: Theme::default(),
         }
     }
@@ -115,6 +155,13 @@ impl GlitchText {
     #[must_use]
     pub fn intensity(mut self, intensity: f32) -> Self {
         self.intensity = intensity.clamp(0.0, 1.0);
+        self
+    }
+
+    /// Set the glyph-pool form for corruption (see [`GlitchShape`]) (builder).
+    #[must_use]
+    pub fn shape(mut self, shape: GlitchShape) -> Self {
+        self.shape = shape;
         self
     }
 
@@ -147,6 +194,10 @@ pub struct GlitchTextState {
     burst_len: usize,
     /// `(position, glyph)` pairs currently corrupted. Stable between re-rolls.
     burst: Vec<(usize, char)>,
+    /// Cached glyph pool the burst draws from. Synced from the widget's
+    /// [`GlitchShape`] during render; defaults to [`GLYPH_POOL`] (the
+    /// [`GlitchShape::KatakanaNoise`] default) so output is byte-identical.
+    glyph_pool: &'static [char],
 }
 
 impl Default for GlitchTextState {
@@ -157,6 +208,7 @@ impl Default for GlitchTextState {
             life: 0,
             burst_len: 0,
             burst: Vec::new(),
+            glyph_pool: GLYPH_POOL,
         }
     }
 }
@@ -198,16 +250,18 @@ impl GlitchTextState {
 
     /// Roll a fresh burst: pick which of `len` positions glitch (each chosen
     /// independently with probability `intensity`) and assign each a random
-    /// glyph from [`GLYPH_POOL`].
+    /// glyph from the cached glyph pool ([`self.glyph_pool`], synced from the
+    /// widget's [`GlitchShape`]).
     fn roll_burst(&mut self, len: usize, intensity: f32) {
         self.burst.clear();
         self.burst_len = len;
         if len == 0 || intensity <= 0.0 {
             return;
         }
+        let pool = self.glyph_pool;
         for pos in 0..len {
             if self.next_f32() < intensity {
-                let glyph = GLYPH_POOL[(self.next_u32() as usize) % GLYPH_POOL.len()];
+                let glyph = pool[(self.next_u32() as usize) % pool.len()];
                 self.burst.push((pos, glyph));
             }
         }
@@ -256,6 +310,11 @@ impl StatefulWidget for GlitchText {
 
         // Pre-collect chars so we can index without re-borrowing `self.text`.
         let chars: Vec<char> = self.text.chars().collect();
+
+        // Sync the glyph pool from the widget's shape into the state before any
+        // burst (re-)roll. KatakanaNoise (default) caches GLYPH_POOL, so this
+        // preserves byte-identical output for the default case.
+        state.glyph_pool = self.shape.pool();
 
         // If a burst is active, ensure it is materialized for this text length.
         if state.life > 0 {
@@ -354,6 +413,40 @@ mod tests {
             Some(alert),
             "glitched cells use palette.alert"
         );
+    }
+
+    #[test]
+    fn binary_shape_corrupts_to_zeroes_and_ones() {
+        // The Binary shape restricts corruption glyphs to '0'/'1'. With
+        // intensity 1.0 after a re-roll boundary tick, every cell must corrupt
+        // and every corrupted glyph must be '0' or '1' — and the output must
+        // differ from the clean text.
+        let clean = row_symbols(&render("HELLO", 1.0, Theme::Cyberpunk, 0, 5, 1), 5);
+        assert_eq!(clean, vec!["H", "E", "L", "L", "O"]);
+
+        // Render with the Binary shape via a dedicated widget/state pair.
+        let mut buf = Buffer::empty(Rect::new(0, 0, 5, 1));
+        let widget = GlitchText::new("HELLO")
+            .intensity(1.0)
+            .shape(GlitchShape::Binary);
+        let mut state = GlitchTextState::default();
+        for _ in 0..REROLL_PERIOD {
+            state.tick();
+        }
+        StatefulWidget::render(widget, Rect::new(0, 0, 5, 1), &mut buf, &mut state);
+        let glitched = row_symbols(&buf, 5);
+
+        assert_ne!(
+            glitched, clean,
+            "Binary shape after a re-roll boundary tick must corrupt"
+        );
+        for s in &glitched {
+            let c = s.chars().next().expect("non-empty symbol");
+            assert!(
+                c == '0' || c == '1',
+                "Binary shape may only emit '0'/'1', got {c:?}"
+            );
+        }
     }
 
     #[test]

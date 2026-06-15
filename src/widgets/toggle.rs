@@ -39,13 +39,54 @@ use ratatui_style::{ComputeScratch, NodeRef};
 use crate::Theme;
 
 /// Filled indicator glyph for the on state.
-const DOT_ON: &str = "◉";
+pub const DOT_ON: &str = "◉";
 /// Hollow indicator glyph for the off state.
-const DOT_OFF: &str = "○";
+pub const DOT_OFF: &str = "○";
 /// Suffix appended when the toggle is on.
-const SUFFIX_ON: &str = "ENGAGED";
+pub const SUFFIX_ON: &str = "ENGAGED";
 /// Suffix appended when the toggle is off.
-const SUFFIX_OFF: &str = "STANDBY";
+pub const SUFFIX_OFF: &str = "STANDBY";
+
+/// Visual form of a [`Toggle`]'s indicator dot.
+///
+/// Selects the on/off dot glyph pair; colors stay on the CSS cascade
+/// (`Toggle.on` / `Toggle.off`), untouched by this enum. The brackets and
+/// suffixes are also unchanged across variants — only the dot glyph varies.
+/// The [`ToggleShape::Orb`] default reproduces the original `◉` / `○` look
+/// byte-for-byte, so existing tests pass unchanged.
+///
+/// Every dot glyph is Unicode width-1 (see convention #5 at the crate root),
+/// keeping the toggle's `chars().count() == display_width` centering math
+/// valid.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum ToggleShape {
+    /// Filled `◉` / hollow `○` — the original look.
+    #[default]
+    Orb,
+    /// Filled `■` / hollow `□`.
+    Block,
+    /// Filled `◆` / hollow `◇`.
+    Diamond,
+    /// Filled `●` / hollow `○`.
+    Bullet,
+}
+
+impl ToggleShape {
+    /// The indicator dot glyph for the given on/off state.
+    #[must_use]
+    pub const fn dot(self, on: bool) -> char {
+        match (self, on) {
+            (Self::Orb, true) => '◉',
+            (Self::Orb, false) => '○',
+            (Self::Block, true) => '■',
+            (Self::Block, false) => '□',
+            (Self::Diamond, true) => '◆',
+            (Self::Diamond, false) => '◇',
+            (Self::Bullet, true) => '●',
+            (Self::Bullet, false) => '○',
+        }
+    }
+}
 
 /// A sci-fi boolean toggle.
 ///
@@ -57,6 +98,9 @@ pub struct Toggle {
     pub label: String,
     /// Whether the toggle is in its on (energized) state.
     pub on: bool,
+    /// Dot-glyph form (on/off indicator). Defaults to
+    /// [`ToggleShape::Orb`], the original filled/hollow look.
+    pub shape: ToggleShape,
     /// Theme whose [`Stylesheet`](ratatui_style::Stylesheet) drives colors.
     /// Defaults to [`Theme::Cyberpunk`].
     pub theme: Theme,
@@ -64,20 +108,37 @@ pub struct Toggle {
 
 impl Default for Toggle {
     fn default() -> Self {
-        Self { label: String::new(), on: false, theme: Theme::Cyberpunk }
+        Self {
+            label: String::new(),
+            on: false,
+            shape: ToggleShape::default(),
+            theme: Theme::Cyberpunk,
+        }
     }
 }
 
 impl Toggle {
     /// Create a toggle with the given label, off, default theme.
     pub fn new(label: impl Into<String>) -> Self {
-        Self { label: label.into(), on: false, theme: Theme::Cyberpunk }
+        Self {
+            label: label.into(),
+            on: false,
+            shape: ToggleShape::default(),
+            theme: Theme::Cyberpunk,
+        }
     }
 
     /// Set whether the toggle renders in its on (energized) style.
     #[must_use]
     pub fn on(mut self, on: bool) -> Self {
         self.on = on;
+        self
+    }
+
+    /// Set the dot-glyph form (see [`ToggleShape`]).
+    #[must_use]
+    pub fn shape(mut self, shape: ToggleShape) -> Self {
+        self.shape = shape;
         self
     }
 
@@ -107,7 +168,8 @@ impl Widget for Toggle {
             .compute_with(&NodeRef::new("Toggle").classes(self.state_classes()), None, &mut scratch)
             .to_style();
 
-        let (dot, suffix) = if self.on { (DOT_ON, SUFFIX_ON) } else { (DOT_OFF, SUFFIX_OFF) };
+        let dot = self.shape.dot(self.on);
+        let suffix = if self.on { SUFFIX_ON } else { SUFFIX_OFF };
 
         // Compose `[ dot LABEL · SUFFIX ]`.
         let content = format!("[ {dot} {label} · {suffix} ]", label = self.label);
@@ -211,5 +273,22 @@ mod tests {
         let mut buf = Buffer::empty(Rect::new(0, 0, 0, 0));
         Toggle::new("X").on(true).render(Rect::new(0, 0, 0, 0), &mut buf);
         assert_eq!(*buf.area(), Rect::new(0, 0, 0, 0));
+    }
+
+    #[test]
+    fn non_default_shape_changes_on_dot() {
+        use super::ToggleShape;
+
+        // The Block shape swaps the on dot from the default '◉' to '■'.
+        let buf = render(Toggle::new("X").on(true).shape(ToggleShape::Block));
+        let text = row_text(&buf, H / 2);
+        assert!(
+            text.contains('■'),
+            "Block on should use the filled square dot '■': {text:?}"
+        );
+        assert!(
+            !text.contains('◉'),
+            "Block on must not use the default Orb dot '◉': {text:?}"
+        );
     }
 }

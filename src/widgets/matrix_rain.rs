@@ -52,6 +52,40 @@ pub const CHARSET: &[char] = &[
     't', 'u', 'v', 'w', 'x', 'y', 'z', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
 ];
 
+/// Visual form (glyph pool) of a [`MatrixRain`]'s falling streams.
+///
+/// Selects the charset the rain draws glyphs from; colors stay on the CSS
+/// cascade (`MatrixRain`), untouched by this enum. The
+/// [`MatrixShape::Katakana`] default returns the existing [`CHARSET`] const,
+/// so output is byte-for-byte identical and existing tests pass unchanged.
+///
+/// Every glyph in every variant is Unicode width-1 (see convention #5 at the
+/// crate root), keeping the rain's single-cell glyph model valid.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum MatrixShape {
+    /// Katakana + latin + digits — the original pool ([`CHARSET`]).
+    #[default]
+    Katakana,
+    /// `0` / `1` only.
+    Binary,
+    /// `0`..`9`, `A`..`F`.
+    Hex,
+}
+
+impl MatrixShape {
+    /// The glyph pool this shape draws from.
+    #[must_use]
+    pub const fn charset(self) -> &'static [char] {
+        match self {
+            Self::Katakana => CHARSET,
+            Self::Binary => &['0', '1'],
+            Self::Hex => &[
+                '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F',
+            ],
+        }
+    }
+}
+
 /// Number of discrete brightness tiers behind the head (including the head).
 ///
 /// The head is the brightest tier; cells further from the head use
@@ -74,6 +108,9 @@ pub struct MatrixRain {
     /// Rows the head advances per tick; may be fractional (accumulated).
     /// Default `1.0`.
     pub speed: f32,
+    /// Glyph pool form (charset the rain draws from). Defaults to
+    /// [`MatrixShape::Katakana`], the original katakana/latin/digit pool.
+    pub shape: MatrixShape,
     /// Active theme; controls all colors via its [`Palette`](crate::Palette).
     /// Default [`Theme::Cyberpunk`].
     pub theme: Theme,
@@ -81,7 +118,12 @@ pub struct MatrixRain {
 
 impl Default for MatrixRain {
     fn default() -> Self {
-        Self { density: 1.0, speed: 1.0, theme: Theme::default() }
+        Self {
+            density: 1.0,
+            speed: 1.0,
+            shape: MatrixShape::default(),
+            theme: Theme::default(),
+        }
     }
 }
 
@@ -102,6 +144,13 @@ impl MatrixRain {
     #[must_use]
     pub fn speed(mut self, speed: f32) -> Self {
         self.speed = speed;
+        self
+    }
+
+    /// Set the glyph-pool form (see [`MatrixShape`]).
+    #[must_use]
+    pub fn shape(mut self, shape: MatrixShape) -> Self {
+        self.shape = shape;
         self
     }
 
@@ -151,6 +200,10 @@ pub struct MatrixRainState {
     /// Cached widget density (0..1), written by `render` so `tick()` can
     /// re-roll inactive columns when streams recycle.
     density: f32,
+    /// Cached widget charset, written by `render` so `tick()`'s glyph picks
+    /// and the tail-glyph hash lookup read the active [`MatrixShape`]'s pool.
+    /// Defaults to [`CHARSET`] (the [`MatrixShape::Katakana`] pool).
+    charset: &'static [char],
 }
 
 impl Default for MatrixRainState {
@@ -163,6 +216,7 @@ impl Default for MatrixRainState {
             height: 0,
             speed: 1.0,
             density: 1.0,
+            charset: CHARSET,
         }
     }
 }
@@ -285,11 +339,11 @@ impl MatrixRainState {
         (self.next_u32() >> 8) as f32 / ((1u32 << 24) as f32)
     }
 
-    /// Pick a glyph from [`CHARSET`] using the PRNG.
+    /// Pick a glyph from the cached charset using the PRNG.
     #[inline]
     fn next_glyph(&mut self) -> char {
-        let idx = (self.next_u32() as usize) % CHARSET.len();
-        CHARSET[idx]
+        let idx = (self.next_u32() as usize) % self.charset.len();
+        self.charset[idx]
     }
 }
 
@@ -322,6 +376,7 @@ impl StatefulWidget for MatrixRain {
         // Cache widget config into state so the argless tick() can apply it,
         // and (re)size/reseed internal buffers to the area.
         state.speed = self.speed;
+        state.charset = self.shape.charset();
         state.resize_for(area, self.density);
 
         let palette = self.theme.palette();
@@ -361,7 +416,7 @@ impl StatefulWidget for MatrixRain {
                     // Tail: deterministic glyph from a position+seed hash so
                     // the tail text is stable between frames.
                     let hash = hash_xy(state.rng, x, y);
-                    cell.set_char(CHARSET[(hash as usize) % CHARSET.len()])
+                    cell.set_char(state.charset[(hash as usize) % state.charset.len()])
                         .set_style(style);
                 }
             }
@@ -555,6 +610,43 @@ mod tests {
         assert!(!CHARSET.is_empty());
         // No chars that fail to encode.
         assert!(CHARSET.iter().all(|c| c.len_utf8() > 0));
+    }
+
+    #[test]
+    fn binary_shape_only_emits_zero_and_one() {
+        // Binary shape must draw only '0'/'1' glyphs — no katakana, no latin.
+        let rect = Rect::new(0, 0, 30, 16);
+        let widget = MatrixRain::new()
+            .density(1.0)
+            .speed(1.0)
+            .theme(Theme::Cyberpunk)
+            .shape(MatrixShape::Binary);
+        let mut state = MatrixRainState::default();
+        StatefulWidget::render(
+            widget.clone(),
+            rect,
+            &mut Buffer::empty(rect),
+            &mut state,
+        );
+        // Advance a few ticks so heads + tails populate across the grid.
+        for _ in 0..6 {
+            state.tick();
+        }
+        let mut buf = Buffer::empty(rect);
+        StatefulWidget::render(widget, rect, &mut buf, &mut state);
+
+        for y in 0..16u16 {
+            for x in 0..30u16 {
+                let sym = buf[(x, y)].symbol();
+                if sym == " " {
+                    continue;
+                }
+                assert!(
+                    sym == "0" || sym == "1",
+                    "Binary shape cell ({x},{y}) must be '0' or '1', got {sym:?}"
+                );
+            }
+        }
     }
 
     #[test]

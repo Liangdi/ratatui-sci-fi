@@ -25,6 +25,10 @@
 //! input · `space` toggles the toggle · `t` cycles the four themes · `a` toggles
 //! the alert popup · `q` / `Esc` quits.
 //!
+//! Each multi-instance cell renders a **different `.shape(...)` variant** so the
+//! whole form-variant range is visible at once (button markers, divider rules,
+//! gauge fills, spinner sets, toggle indicators, glitch pools, panel borders).
+//!
 //! ```sh
 //! cargo run -p ratatui-sci-fi --example widget_gallery
 //! ```
@@ -46,9 +50,11 @@ use ratatui::{
 };
 use ratatui_sci_fi::{
     AlertPopup, AlertPopupState, BiometricChart, BiometricChartState, Blip, BootSequence,
-    BootSequenceState, Button, Divider, EnergyGauge, GlitchText, GlitchTextState, Level,
-    MatrixRain, MatrixRainState, Panel, ScanList, ScanListState, SciFiRadar, SciFiRadarState,
-    Spinner, SpinnerState, TargetLock, TextInput, TextInputState, Theme, Toggle, Value,
+    BootSequenceState, Button, ButtonShape, Divider, DividerShape, EnergyGauge, GaugeShape,
+    GlitchShape, GlitchText, GlitchTextState, Level, MatrixRain, MatrixRainState, Panel, PanelShape,
+    ScanList,
+    ScanListState, SciFiRadar, SciFiRadarState, Spinner, SpinnerShape, SpinnerState, TargetLock,
+    TextInput, TextInputState, Theme, Toggle, ToggleShape, Value,
 };
 
 type Term = Terminal<CrosstermBackend<Stdout>>;
@@ -166,6 +172,12 @@ impl App {
         if self.alert_visible {
             self.alert.tick();
         }
+    }
+}
+
+impl Default for App {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -347,8 +359,14 @@ fn buttons_cell(f: &mut ratatui::Frame<'_>, theme: Theme, area: Rect, app: &mut 
     let inner = cell(f, theme, area, "BUTTONS");
     let rows = Layout::vertical([Constraint::Min(1), Constraint::Min(1), Constraint::Min(1)])
         .split(inner);
+    // Each button shows a different marker shape so the gallery exercises the
+    // whole ButtonShape range at once.
+    let shapes = [ButtonShape::Bracket, ButtonShape::Angle, ButtonShape::Chevron];
     for (i, label) in BUTTONS.iter().enumerate() {
-        let button = Button::new(*label).focused(i == app.button_focus).theme(theme);
+        let button = Button::new(*label)
+            .focused(i == app.button_focus)
+            .shape(shapes[i])
+            .theme(theme);
         f.render_widget(button, rows[i]);
     }
 }
@@ -358,11 +376,14 @@ fn toggle_cell(f: &mut ratatui::Frame<'_>, theme: Theme, area: Rect, app: &mut A
     let inner = cell(f, theme, area, "TOGGLE");
     let rows = Layout::vertical([Constraint::Min(1), Constraint::Min(1)]).split(inner);
     f.render_widget(
-        Toggle::new("SHIELDS").on(app.toggle_on).theme(theme),
+        Toggle::new("SHIELDS").on(app.toggle_on).shape(ToggleShape::Orb).theme(theme),
         rows[0],
     );
     f.render_widget(
-        Toggle::new("CLOAK").on(!app.toggle_on).theme(theme),
+        Toggle::new("CLOAK")
+            .on(!app.toggle_on)
+            .shape(ToggleShape::Diamond)
+            .theme(theme),
         rows[1],
     );
 }
@@ -394,8 +415,16 @@ fn value_cell(f: &mut ratatui::Frame<'_>, theme: Theme, area: Rect, frame: u64) 
 fn spinner_cell(f: &mut ratatui::Frame<'_>, theme: Theme, area: Rect, app: &mut App) {
     let inner = cell(f, theme, area, "SPINNER");
     let rows = Layout::vertical([Constraint::Min(1), Constraint::Min(1)]).split(inner);
-    f.render_stateful_widget(Spinner::new().label("SYNC").theme(theme), rows[0], &mut app.spinner);
-    f.render_stateful_widget(Spinner::new().label("DECRYPT").theme(theme), rows[1], &mut app.spinner);
+    f.render_stateful_widget(
+        Spinner::new().label("SYNC").shape(SpinnerShape::Braille).theme(theme),
+        rows[0],
+        &mut app.spinner,
+    );
+    f.render_stateful_widget(
+        Spinner::new().label("DECRYPT").shape(SpinnerShape::Dots).theme(theme),
+        rows[1],
+        &mut app.spinner,
+    );
 }
 
 /// A single-line text input. Type to edit; the caret blinks each tick.
@@ -413,16 +442,19 @@ fn divider_cell(f: &mut ratatui::Frame<'_>, theme: Theme, area: Rect) {
     let inner = cell(f, theme, area, "DIVIDER");
     let rows = Layout::vertical([Constraint::Min(1), Constraint::Min(1), Constraint::Min(1)])
         .split(inner);
-    f.render_widget(Divider::new().theme(theme), rows[0]);
-    f.render_widget(Divider::new().label("SECTION A").theme(theme), rows[1]);
-    f.render_widget(Divider::new().theme(theme), rows[2]);
+    f.render_widget(Divider::new().shape(DividerShape::Single).theme(theme), rows[0]);
+    f.render_widget(
+        Divider::new().label("SECTION A").shape(DividerShape::Double).theme(theme),
+        rows[1],
+    );
+    f.render_widget(Divider::new().shape(DividerShape::Heavy).theme(theme), rows[2]);
 }
 
 /// A `Panel` (titled double-bordered container) wrapping a couple of `Value`
 /// readouts — the basic-container use case.
 fn panel_cell(f: &mut ratatui::Frame<'_>, theme: Theme, area: Rect, frame: u64) {
     let inner = cell(f, theme, area, "PANEL");
-    let panel = Panel::new().title("STATUS").theme(theme);
+    let panel = Panel::new().title("STATUS").shape(PanelShape::Rounded).theme(theme);
     let content = panel.inner(inner);
     f.render_widget(panel, inner);
 
@@ -458,10 +490,15 @@ fn gauges_cell(f: &mut ratatui::Frame<'_>, theme: Theme, area: Rect, frame: u64)
         ("O2", 0.16, 0.10, 0.13),  // 0.06..0.26 → alert
     ];
     let t = frame as f64;
+    let shapes = [GaugeShape::Cell, GaugeShape::Block, GaugeShape::Ascii];
     for (i, (label, base, amp, freq)) in gauges.iter().enumerate() {
         let ratio = (base + amp * (t * freq).sin()).clamp(0.0, 1.0);
         f.render_widget(
-            EnergyGauge::new(ratio).label(*label).segments(14).theme(theme),
+            EnergyGauge::new(ratio)
+                .label(*label)
+                .segments(14)
+                .shape(shapes[i])
+                .theme(theme),
             rows[i],
         );
     }
@@ -473,12 +510,18 @@ fn glitch_cell(f: &mut ratatui::Frame<'_>, theme: Theme, area: Rect, app: &mut A
     let rows = Layout::vertical([Constraint::Length(1), Constraint::Length(1), Constraint::Min(0)])
         .split(inner);
     f.render_stateful_widget(
-        GlitchText::new("DECRYPT // SECTOR 7G").intensity(0.30).theme(theme),
+        GlitchText::new("DECRYPT // SECTOR 7G")
+            .intensity(0.30)
+            .shape(GlitchShape::KatakanaNoise)
+            .theme(theme),
         rows[0],
         &mut app.glitch_a,
     );
     f.render_stateful_widget(
-        GlitchText::new("SIGNAL LOST").intensity(0.12).theme(theme),
+        GlitchText::new("SIGNAL LOST")
+            .intensity(0.12)
+            .shape(GlitchShape::Binary)
+            .theme(theme),
         rows[1],
         &mut app.glitch_b,
     );

@@ -34,11 +34,47 @@ use ratatui::{
     layout::{Alignment, Rect},
     style::Style,
     text::Line,
-    widgets::Widget,
+    widgets::{BorderType, Widget},
 };
 use ratatui_style::{ComputeScratch, NodeRef};
 
 use crate::Theme;
+
+/// Visual form of a [`Panel`]'s border.
+///
+/// Selects the [`BorderType`] the cascade-built [`Block`](ratatui::widgets::Block)
+/// is rendered with; border color, padding, and which sides are bordered stay on
+/// the CSS cascade (`Frame` rule), untouched by this enum. The
+/// [`PanelShape::Double`] default reproduces the original `border: double` look
+/// byte-for-byte, so existing tests pass unchanged.
+///
+/// Geometry is identical across all variants — only the border glyphs change —
+/// so [`Panel::inner`] is unaffected by the chosen shape.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum PanelShape {
+    /// Double-line border (`╔` … `╝`) — the CSS-driven default.
+    #[default]
+    Double,
+    /// Plain single-line border (`┌` … `┘`).
+    Single,
+    /// Rounded single-line border (`╭` … `╯`).
+    Rounded,
+    /// Thick single-line border (`┏` … `┛`).
+    Thick,
+}
+
+impl PanelShape {
+    /// The ratatui [`BorderType`] this shape maps to.
+    #[must_use]
+    pub const fn border_type(self) -> BorderType {
+        match self {
+            Self::Double => BorderType::Double,
+            Self::Single => BorderType::Plain,
+            Self::Rounded => BorderType::Rounded,
+            Self::Thick => BorderType::Thick,
+        }
+    }
+}
 
 /// A sci-fi titled container panel.
 ///
@@ -50,6 +86,9 @@ use crate::Theme;
 pub struct Panel {
     /// Optional title rendered on the top border.
     pub title: Option<String>,
+    /// Border-glyph form (the [`BorderType`] override). Defaults to
+    /// [`PanelShape::Double`], the CSS-driven `border: double` look.
+    pub shape: PanelShape,
     /// Theme whose [`Stylesheet`](ratatui_style::Stylesheet) drives the frame's
     /// border color. Defaults to [`Theme::Cyberpunk`].
     pub theme: Theme,
@@ -65,6 +104,13 @@ impl Panel {
     #[must_use]
     pub fn title(mut self, title: impl Into<String>) -> Self {
         self.title = Some(title.into());
+        self
+    }
+
+    /// Set the border-glyph form (see [`PanelShape`]).
+    #[must_use]
+    pub fn shape(mut self, shape: PanelShape) -> Self {
+        self.shape = shape;
         self
     }
 
@@ -124,7 +170,10 @@ impl Widget for Panel {
             .to_style();
         let block_bg = computed.to_style().bg.unwrap_or(ratatui::style::Color::Reset);
 
-        let mut block = computed.to_block().style(Style::default().bg(block_bg));
+        let mut block = computed
+            .to_block()
+            .border_type(self.shape.border_type())
+            .style(Style::default().bg(block_bg));
         if let Some(title) = &self.title {
             block = block
                 .title(Line::from(title.as_str()).alignment(Alignment::Left).style(title_style));
@@ -155,6 +204,28 @@ mod tests {
         assert_eq!(buf[(0, 0)].symbol(), "╔", "top-left must be a double corner");
         assert_eq!(buf[(W - 1, 0)].symbol(), "╗", "top-right must be a double corner");
         assert_eq!(buf[(W - 1, H - 1)].symbol(), "╝", "bottom-right must be a double corner");
+    }
+
+    #[test]
+    fn rounded_shape_uses_rounded_corners() {
+        use super::PanelShape;
+        let buf = render(
+            Panel::new().theme(Theme::Cyberpunk).shape(PanelShape::Rounded),
+            W,
+            H,
+        );
+        // The Rounded shape overrides the border type: the top-left corner must
+        // be the rounded glyph `╭`, not the default double-line corner `╔`.
+        assert_eq!(
+            buf[(0, 0)].symbol(),
+            "╭",
+            "rounded shape must use the rounded top-left corner"
+        );
+        assert_ne!(
+            buf[(0, 0)].symbol(),
+            "╔",
+            "rounded shape must not show the double-line corner"
+        );
     }
 
     #[test]

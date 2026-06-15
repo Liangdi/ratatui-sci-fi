@@ -40,6 +40,17 @@
 //! 4. **Deterministic tests.** Render into an offscreen `Buffer` and assert on
 //!    its cells (no real terminal). See the ratatui-style `04_render` example
 //!    for the buffer-dump pattern.
+//! 5. **Shape variants (形态变体).** A widget may expose a `.shape(XxxShape)`
+//!    builder (caret-bearing widgets use `.caret(CaretShape)`) to swap its glyph
+//!    set, fill style, or border type. Shape enums are CONFIG — they live on the
+//!    widget struct (per #3), never on `…State`. The `#[default]` variant MUST
+//!    reproduce the widget's prior appearance byte-for-byte, so existing tests
+//!    pass without modification. All variant glyphs MUST be Unicode width-1
+//!    (never East Asian Width `W`/`F`) — frame/marker glyphs participate in
+//!    centering math that assumes `chars().count() == display_width`. Colors
+//!    stay on CSS: a shape variant affects glyphs/layout only, never the
+//!    stylesheet. Keep existing `pub const` glyph tables as the default
+//!    variant's backing data so the public API does not break.
 //!
 //! [`Widget`]: ratatui::widgets::Widget
 //! [`StatefulWidget`]: ratatui::widgets::StatefulWidget

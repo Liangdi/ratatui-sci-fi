@@ -52,11 +52,12 @@ use ratatui::{
 use ratatui::crossterm::event::{KeyCode, KeyEvent};
 use ratatui_style::{ComputeScratch, NodeRef};
 
+use crate::CaretShape;
 use crate::Theme;
 use crate::widgets::list::DEFAULT_CURSOR_PERIOD;
 
 /// The blinking caret glyph. Shared with `ScanList`'s selection cursor.
-const CARET_GLYPH: &str = "█";
+pub const CARET_GLYPH: &str = "█";
 
 /// A single-line sci-fi text input.
 ///
@@ -67,6 +68,9 @@ const CARET_GLYPH: &str = "█";
 pub struct TextInput {
     /// Placeholder shown (muted) when the value is empty.
     pub placeholder: Option<String>,
+    /// Shape of the blinking caret glyph. Defaults to
+    /// [`CaretShape::Block`] (`█`), reproducing the original look.
+    pub caret: CaretShape,
     /// Theme whose [`Stylesheet`](ratatui_style::Stylesheet) drives colors.
     /// Defaults to [`Theme::Cyberpunk`].
     pub theme: Theme,
@@ -82,6 +86,13 @@ impl TextInput {
     #[must_use]
     pub fn placeholder(mut self, placeholder: impl Into<String>) -> Self {
         self.placeholder = Some(placeholder.into());
+        self
+    }
+
+    /// Set the blinking caret's glyph shape (see [`CaretShape`]).
+    #[must_use]
+    pub fn caret(mut self, caret: CaretShape) -> Self {
+        self.caret = caret;
         self
     }
 
@@ -259,7 +270,7 @@ impl StatefulWidget for TextInput {
             // so the empty input still reads as focused. It never clobbers a
             // rendered placeholder glyph.
             if state.cursor_visible() && x < right {
-                buf[(x, y)].set_symbol(CARET_GLYPH).set_style(caret_style);
+                buf[(x, y)].set_char(self.caret.glyph()).set_style(caret_style);
             }
             return;
         }
@@ -295,7 +306,7 @@ impl StatefulWidget for TextInput {
         if caret_visible && state.cursor as u16 == char_count {
             let px = area.x + char_count;
             if px < right {
-                buf[(px, y)].set_symbol(CARET_GLYPH).set_style(caret_style);
+                buf[(px, y)].set_char(self.caret.glyph()).set_style(caret_style);
             }
         }
     }
@@ -483,5 +494,22 @@ mod tests {
         let mut s = TextInputState::new();
         TextInput::new().placeholder("X").render(Rect::new(0, 0, 0, 0), &mut buf, &mut s);
         assert_eq!(*buf.area(), Rect::new(0, 0, 0, 0));
+    }
+
+    #[test]
+    fn non_default_caret_shape_uses_its_glyph() {
+        // An empty input with the Bar caret: at tick 0 the caret is visible and
+        // parks on its own cell at x=0. Its glyph must be Bar's '▎', not the
+        // default Block '█'.
+        let mut s = TextInputState::new();
+        assert!(s.cursor_visible(), "caret should be visible at tick 0");
+        let mut buf = Buffer::empty(Rect::new(0, 0, W, H));
+        let input = TextInput::new().caret(CaretShape::Bar);
+        StatefulWidget::render(input, Rect::new(0, 0, W, H), &mut buf, &mut s);
+        assert_eq!(
+            buf[(0, 0)].symbol(),
+            "▎",
+            "Bar caret should render '▎', not the default Block '█'"
+        );
     }
 }

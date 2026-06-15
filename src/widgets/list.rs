@@ -37,7 +37,7 @@ use ratatui::{
 };
 use ratatui_style::{ComputeScratch, NodeRef};
 
-use crate::Theme;
+use crate::{CaretShape, Theme};
 
 /// Default blink period (in ticks) for the selection cursor.
 ///
@@ -61,6 +61,10 @@ pub const SCANLINE_GLYPH: &str = "─";
 pub struct ScanList {
     /// The rows to display, in order.
     pub items: Vec<String>,
+    /// Cursor glyph form (the blinking selection cursor at the selected row
+    /// head). Defaults to [`CaretShape::Block`], reproducing the original `█`
+    /// look byte-for-byte.
+    pub caret: CaretShape,
     /// Active theme; controls all colors via its [`Palette`](crate::Palette).
     pub theme: Theme,
 }
@@ -68,7 +72,18 @@ pub struct ScanList {
 impl ScanList {
     /// Build a list from any iterator of stringifiable items.
     pub fn new(items: impl IntoIterator<Item = impl Into<String>>) -> Self {
-        Self { items: items.into_iter().map(Into::into).collect(), theme: Theme::default() }
+        Self {
+            items: items.into_iter().map(Into::into).collect(),
+            caret: CaretShape::default(),
+            theme: Theme::default(),
+        }
+    }
+
+    /// Set the cursor glyph form (see [`CaretShape`]).
+    #[must_use]
+    pub fn caret(mut self, caret: CaretShape) -> Self {
+        self.caret = caret;
+        self
     }
 
     /// Replace the theme (builder). Default is [`Theme::Cyberpunk`].
@@ -148,8 +163,10 @@ impl StatefulWidget for ScanList {
             let row_style = if is_selected { selected_style } else { normal_style };
 
             // Cursor glyph occupies column 0 of a selected row; a leading
-            // space otherwise keeps columns aligned across rows.
-            let cursor = if is_selected && cursor_on { CURSOR_GLYPH } else { " " };
+            // space otherwise keeps columns aligned across rows. The glyph
+            // comes from the configured `caret` shape — `CaretShape::Block`
+            // (the default) renders `'█'`, identical to `CURSOR_GLYPH`.
+            let cursor_visible = is_selected && cursor_on;
 
             // Write the cursor cell + text. We write cell-by-cell up to the
             // area width so styling is consistent and we never overshoot.
@@ -158,7 +175,11 @@ impl StatefulWidget for ScanList {
             // Cursor cell (column 0 of the row, relative to area.x).
             if col < area.right() {
                 let cell = &mut buf[(col, text_y)];
-                cell.set_symbol(cursor).set_style(row_style);
+                if cursor_visible {
+                    cell.set_char(self.caret.glyph()).set_style(row_style);
+                } else {
+                    cell.set_symbol(" ").set_style(row_style);
+                }
                 col += 1;
             }
 
@@ -228,6 +249,29 @@ mod tests {
         // tick = DEFAULT_CURSOR_PERIOD (15) -> (15/15)=1, 1.is_multiple_of(2)==false -> hidden.
         let buf = render(&["alpha", "beta", "gamma"], Theme::Cyberpunk, 1, DEFAULT_CURSOR_PERIOD, 12, 6);
         assert_eq!(buf[(0, 2)].symbol(), " ", "cursor glyph should be hidden (space) this half-cycle");
+    }
+
+    #[test]
+    fn caret_variant_uses_bar_glyph_at_cursor_cell() {
+        // Bar caret: the selected-row cursor cell should be '▎', not the default '█'.
+        // tick 0 -> cursor visible; selected index 1 -> row head at y = 2, x = 0.
+        let mut buf = Buffer::empty(Rect::new(0, 0, 12, 6));
+        let widget = ScanList::new(["alpha", "beta", "gamma"].iter().copied())
+            .theme(Theme::Cyberpunk)
+            .caret(CaretShape::Bar);
+        let mut state = ScanListState { selected: 1, tick: 0 };
+        StatefulWidget::render(widget, Rect::new(0, 0, 12, 6), &mut buf, &mut state);
+
+        assert_eq!(
+            buf[(0, 2)].symbol(),
+            "▎",
+            "Bar caret should render '▎' at the selected row head"
+        );
+        assert_ne!(
+            buf[(0, 2)].symbol(),
+            "█",
+            "Bar caret must not render the default Block glyph '█'"
+        );
     }
 
     #[test]

@@ -22,10 +22,42 @@ use ratatui::{
     layout::{Alignment, Rect},
     style::Style,
     text::Line,
-    widgets::{Block, BorderType, Borders, Paragraph, StatefulWidget, Widget},
+    widgets::{Block, Borders, Paragraph, StatefulWidget, Widget},
 };
 
 use crate::Theme;
+
+/// Visual form of an [`AlertPopup`]'s border.
+///
+/// Selects the ratatui [`BorderType`] used to draw the popup's frame; colors
+/// stay on `theme.palette()` (alert / panel / fg), untouched by this enum. The
+/// [`PopupShape::Double`] default reproduces the original double-line border
+/// byte-for-byte, so existing tests pass unchanged.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum PopupShape {
+    /// Double-line border (`╔` / `═` / `╝`) — the original look.
+    #[default]
+    Double,
+    /// Single-line border (`┌` / `─` / `┘`).
+    Single,
+    /// Rounded border (`╭` / `─` / `╯`).
+    Rounded,
+    /// Thick border (`┏` / `━` / `┛`).
+    Thick,
+}
+
+impl PopupShape {
+    /// The ratatui [`BorderType`] this shape renders with.
+    #[must_use]
+    pub const fn border_type(self) -> ratatui::widgets::BorderType {
+        match self {
+            Self::Double => ratatui::widgets::BorderType::Double,
+            Self::Single => ratatui::widgets::BorderType::Plain,
+            Self::Rounded => ratatui::widgets::BorderType::Rounded,
+            Self::Thick => ratatui::widgets::BorderType::Thick,
+        }
+    }
+}
 
 /// A centered alert popup with a double-line alert-red border and a brief
 /// flash-on-show blink cycle.
@@ -52,6 +84,9 @@ pub struct AlertPopup {
     pub title: Option<String>,
     /// Centered message rendered inside the popup.
     pub message: String,
+    /// Border form (see [`PopupShape`]). Defaults to
+    /// [`PopupShape::Double`], the original double-line look.
+    pub shape: PopupShape,
     /// Active theme (defaults to [`Theme::Cyberpunk`]). Drives the palette
     /// used for the border, background, and text.
     pub theme: Theme,
@@ -60,13 +95,25 @@ pub struct AlertPopup {
 impl AlertPopup {
     /// Create a new alert popup showing `message`.
     pub fn new(message: impl Into<String>) -> Self {
-        Self { title: None, message: message.into(), theme: Theme::default() }
+        Self {
+            title: None,
+            message: message.into(),
+            shape: PopupShape::default(),
+            theme: Theme::default(),
+        }
     }
 
     /// Set the optional top-border title.
     #[must_use]
     pub fn title(mut self, title: impl Into<String>) -> Self {
         self.title = Some(title.into());
+        self
+    }
+
+    /// Set the border form (see [`PopupShape`]).
+    #[must_use]
+    pub fn shape(mut self, shape: PopupShape) -> Self {
+        self.shape = shape;
         self
     }
 
@@ -137,7 +184,7 @@ impl StatefulWidget for AlertPopup {
 
         let mut block = Block::new()
             .borders(Borders::ALL)
-            .border_type(BorderType::Double)
+            .border_type(self.shape.border_type())
             .border_style(border_style)
             .style(Style::new().bg(panel));
         if let Some(title) = self.title {
@@ -252,5 +299,28 @@ mod tests {
         assert_eq!(p.theme, Theme::DeepSpace);
         // Default is Cyberpunk.
         assert_eq!(AlertPopup::new("X").theme, Theme::Cyberpunk);
+    }
+
+    #[test]
+    fn rounded_shape_uses_rounded_corner() {
+        use super::PopupShape;
+
+        let mut state = AlertPopupState::default();
+        let area = Rect::new(0, 0, W, H);
+        let mut buf = Buffer::empty(area);
+        AlertPopup::new("HELLO")
+            .shape(PopupShape::Rounded)
+            .render(area, &mut buf, &mut state);
+
+        assert_eq!(
+            corner(&buf),
+            "╭",
+            "rounded shape must use the rounded top-left corner"
+        );
+        assert_ne!(
+            corner(&buf),
+            "╔",
+            "rounded shape must not use the double-line corner"
+        );
     }
 }

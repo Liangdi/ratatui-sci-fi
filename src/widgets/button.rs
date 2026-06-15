@@ -23,14 +23,54 @@
 //! - The label is horizontally centered in `area`; rendering targets the
 //!   vertical middle row. All glyphs are width-1.
 
-use ratatui::{
-    buffer::Buffer,
-    layout::Rect,
-    widgets::Widget,
-};
+use ratatui::{buffer::Buffer, layout::Rect, widgets::Widget};
 use ratatui_style::NodeRef;
 
 use crate::Theme;
+
+/// Visual form of a [`Button`]'s flanking markers.
+///
+/// Selects the end glyphs that frame the label; colors stay on the CSS
+/// cascade (`Button` / `Button.focus`), untouched by this enum. The
+/// [`ButtonShape::Bracket`] default reproduces the original `[ label ]` /
+/// `▶ label ◀` look byte-for-byte, so existing tests pass unchanged.
+///
+/// Every marker glyph is Unicode width-1 (see convention #5 at the crate
+/// root), keeping the button's `chars().count() == display_width` centering
+/// math valid.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum ButtonShape {
+    /// `[ label ]` idle, `▶ label ◀` focused — the original look.
+    #[default]
+    Bracket,
+    /// `< label >` idle, `► label ◄` focused.
+    Angle,
+    /// `« label »` idle, `▶ label ◀` focused.
+    Chevron,
+    /// `| label |` idle, `▐ label ▌` focused.
+    Pipe,
+    /// `> label <` idle, `▸ label ◂` focused.
+    Arrow,
+}
+
+impl ButtonShape {
+    /// The `(left, right)` marker pair for the given focus state.
+    #[must_use]
+    pub const fn markers(self, focused: bool) -> (char, char) {
+        match (self, focused) {
+            (Self::Bracket, false) => ('[', ']'),
+            (Self::Bracket, true) => ('▶', '◀'),
+            (Self::Angle, false) => ('<', '>'),
+            (Self::Angle, true) => ('►', '◄'),
+            (Self::Chevron, false) => ('«', '»'),
+            (Self::Chevron, true) => ('▶', '◀'),
+            (Self::Pipe, false) => ('|', '|'),
+            (Self::Pipe, true) => ('▐', '▌'),
+            (Self::Arrow, false) => ('>', '<'),
+            (Self::Arrow, true) => ('▸', '◂'),
+        }
+    }
+}
 
 /// A sci-fi action button.
 ///
@@ -44,6 +84,9 @@ pub struct Button {
     pub label: String,
     /// Whether this button currently has focus (drives the focused style).
     pub focused: bool,
+    /// Marker-glyph form (idle/focused end glyphs). Defaults to
+    /// [`ButtonShape::Bracket`], the original bracket/arrow look.
+    pub shape: ButtonShape,
     /// Theme whose [`Stylesheet`](ratatui_style::Stylesheet) drives the button's
     /// colors. Defaults to [`Theme::Cyberpunk`].
     pub theme: Theme,
@@ -54,6 +97,7 @@ impl Default for Button {
         Self {
             label: String::new(),
             focused: false,
+            shape: ButtonShape::default(),
             theme: Theme::Cyberpunk,
         }
     }
@@ -65,6 +109,7 @@ impl Button {
         Self {
             label: label.into(),
             focused: false,
+            shape: ButtonShape::default(),
             theme: Theme::Cyberpunk,
         }
     }
@@ -73,6 +118,13 @@ impl Button {
     #[must_use]
     pub fn focused(mut self, focused: bool) -> Self {
         self.focused = focused;
+        self
+    }
+
+    /// Set the marker-glyph form (see [`ButtonShape`]).
+    #[must_use]
+    pub fn shape(mut self, shape: ButtonShape) -> Self {
+        self.shape = shape;
         self
     }
 
@@ -98,19 +150,15 @@ impl Widget for Button {
         // `palette()` directly.
         let sheet = self.theme.stylesheet();
         let computed = if self.focused {
-            sheet.compute(&NodeRef::new("Button").classes(&["focus"]), None).to_style()
+            sheet
+                .compute(&NodeRef::new("Button").classes(&["focus"]), None)
+                .to_style()
         } else {
             sheet.compute(&NodeRef::new("Button"), None).to_style()
         };
 
-        // Pick the bracket glyphs based on focus.
-        let (left, right) = if self.focused {
-            // Dynamic energy arrows.
-            ('▶', '◀')
-        } else {
-            // Quiet square brackets.
-            ('[', ']')
-        };
+        // Pick the marker glyphs from the configured shape + focus state.
+        let (left, right) = self.shape.markers(self.focused);
 
         // Compose the inner content: `glyph label glyph`.
         // Use a single leading/trailing space so the label breathes inside the
@@ -131,7 +179,11 @@ impl Widget for Button {
         // REVERSED so the bright accent label lands inverted on the accent fill
         // — the classic "highlighted" console look.
         let area_style = computed;
-        let text_style = if self.focused { computed.reversed() } else { computed };
+        let text_style = if self.focused {
+            computed.reversed()
+        } else {
+            computed
+        };
 
         // Paint the button's full area background first, so empty cells pick up
         // the highlight when focused.
@@ -172,15 +224,24 @@ mod tests {
         let middle = H / 2;
         let text = row_text(&buf, middle);
 
-        assert!(text.contains('['), "unfocused button should contain '[': {text:?}");
-        assert!(text.contains(']'), "unfocused button should contain ']': {text:?}");
+        assert!(
+            text.contains('['),
+            "unfocused button should contain '[': {text:?}"
+        );
+        assert!(
+            text.contains(']'),
+            "unfocused button should contain ']': {text:?}"
+        );
         assert!(
             !text.contains('▶'),
             "unfocused button must not show the focused arrow: {text:?}"
         );
         // Wide (CJK) glyphs occupy 2 cells; `row_text` joins per-cell, so the
         // continuation cell splits a glyph pair. Assert per-char instead.
-        assert!(text.contains('确') && text.contains('认'), "label should render: {text:?}");
+        assert!(
+            text.contains('确') && text.contains('认'),
+            "label should render: {text:?}"
+        );
     }
 
     #[test]
@@ -199,7 +260,10 @@ mod tests {
         );
         // Wide (CJK) glyphs occupy 2 cells; `row_text` joins per-cell, so the
         // continuation cell splits a glyph pair. Assert per-char instead.
-        assert!(text.contains('确') && text.contains('认'), "label should render: {text:?}");
+        assert!(
+            text.contains('确') && text.contains('认'),
+            "label should render: {text:?}"
+        );
     }
 
     #[test]
@@ -215,8 +279,7 @@ mod tests {
         for x in 0..W {
             let cell_bg = buf[(x, middle)].bg;
             assert_eq!(
-                cell_bg,
-                accent,
+                cell_bg, accent,
                 "cell ({x}, {middle}) should have accent bg, got {cell_bg:?}"
             );
         }
@@ -270,7 +333,9 @@ mod tests {
     fn empty_area_is_a_noop() {
         // A zero-size area must not panic.
         let mut buf = Buffer::empty(Rect::new(0, 0, 0, 0));
-        Button::new("X").focused(true).render(Rect::new(0, 0, 0, 0), &mut buf);
+        Button::new("X")
+            .focused(true)
+            .render(Rect::new(0, 0, 0, 0), &mut buf);
         // Just ensure the buffer is still empty / untouched.
         assert_eq!(*buf.area(), Rect::new(0, 0, 0, 0));
     }
@@ -282,13 +347,41 @@ mod tests {
         let text = row_text(&buf, middle);
 
         // `▶ OK ◀` should be present and not flush against the left edge.
-        assert!(text.contains("▶ OK ◀"), "centered focused content missing: {text:?}");
-        assert!(text.starts_with(' '), "content should be centered (leading spaces): {text:?}");
+        assert!(
+            text.contains("▶ OK ◀"),
+            "centered focused content missing: {text:?}"
+        );
+        assert!(
+            text.starts_with(' '),
+            "content should be centered (leading spaces): {text:?}"
+        );
     }
 
     // Touch `Color` so the import stays used even if assertions evolve.
     #[test]
     fn palette_exposes_rgb_color() {
         let _c: Color = Theme::Cyberpunk.palette().accent.color();
+    }
+
+    #[test]
+    fn non_default_shape_changes_idle_glyphs() {
+        use super::ButtonShape;
+
+        // Default Bracket idle renders '[' … ']'.
+        let idle_default = render(Button::new("OK"));
+        let text = row_text(&idle_default, H / 2);
+        assert!(text.contains('[') && text.contains(']'));
+
+        // The Angle shape swaps the idle markers to '<' / '>'.
+        let idle_angle = render(Button::new("OK").shape(ButtonShape::Angle));
+        let text_angle = row_text(&idle_angle, H / 2);
+        assert!(
+            text_angle.contains('<') && text_angle.contains('>'),
+            "Angle idle should use '<'/'>': {text_angle:?}"
+        );
+        assert!(
+            !text_angle.contains('['),
+            "Angle idle must not use the Bracket '[': {text_angle:?}"
+        );
     }
 }

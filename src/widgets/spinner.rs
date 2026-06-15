@@ -40,6 +40,41 @@ use crate::Theme;
 /// Default braille glyph set. All width-1, so they slot cleanly into one cell.
 pub const SPINNER_GLYPHS: &[char] = &['⠋', '⠙', '⠹', '⠸', '⠴', '⠦', '⠧', '⠇', '⠏'];
 
+/// Visual form of a [`Spinner`]'s rotating glyph set.
+///
+/// Selects the array of width-1 glyphs the spinner cycles through; colors stay
+/// on the CSS cascade (`Value` / `Label` rules), untouched by this enum. The
+/// [`SpinnerShape::Braille`] default returns [`SPINNER_GLYPHS`], reproducing the
+/// original look byte-for-byte so existing tests pass unchanged.
+///
+/// Every glyph is Unicode width-1 (see convention #5 at the crate root), so each
+/// frame slots cleanly into a single cell.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum SpinnerShape {
+    /// The original braille set (`⠋ ⠙ ⠹ ⠸ ⠴ ⠦ ⠧ ⠇ ⠏`) — [`SPINNER_GLYPHS`].
+    #[default]
+    Braille,
+    /// `· • ● ◉ ○ · ◌ ◍ ◎`.
+    Dots,
+    /// `| / - \\`.
+    Ascii,
+    /// `↻ ↺`.
+    Arrow,
+}
+
+impl SpinnerShape {
+    /// The glyph set this shape cycles through.
+    #[must_use]
+    pub const fn glyphs(self) -> &'static [char] {
+        match self {
+            Self::Braille => SPINNER_GLYPHS,
+            Self::Dots => &['·', '•', '●', '◉', '○', '·', '◌', '◍', '◎'],
+            Self::Ascii => &['|', '/', '-', '\\'],
+            Self::Arrow => &['↻', '↺'],
+        }
+    }
+}
+
 /// A braille activity spinner.
 ///
 /// Build with [`Spinner::new`], optionally add a label with [`Spinner::label`]
@@ -49,6 +84,9 @@ pub const SPINNER_GLYPHS: &[char] = &['⠋', '⠙', '⠹', '⠸', '⠴', '⠦', 
 pub struct Spinner {
     /// Optional left-aligned muted label, e.g. `"SYNC"`.
     pub label: Option<String>,
+    /// Glyph-set form (the rotating characters). Defaults to
+    /// [`SpinnerShape::Braille`], the original braille look.
+    pub shape: SpinnerShape,
     /// Theme whose [`Stylesheet`](ratatui_style::Stylesheet) drives colors.
     /// Defaults to [`Theme::Cyberpunk`].
     pub theme: Theme,
@@ -64,6 +102,13 @@ impl Spinner {
     #[must_use]
     pub fn label(mut self, label: impl Into<String>) -> Self {
         self.label = Some(label.into());
+        self
+    }
+
+    /// Set the glyph-set form (see [`SpinnerShape`]).
+    #[must_use]
+    pub fn shape(mut self, shape: SpinnerShape) -> Self {
+        self.shape = shape;
         self
     }
 
@@ -134,9 +179,12 @@ impl StatefulWidget for Spinner {
             }
         }
 
-        // Current glyph in the foreground value color.
+        // Current glyph in the foreground value color. Pick the glyph set from
+        // the widget's shape; index by `tick % glyphs.len()` so the default
+        // (Braille -> SPINNER_GLYPHS) selects exactly as before.
         if x < right {
-            let glyph = state.current_glyph(SPINNER_GLYPHS.len());
+            let glyphs = self.shape.glyphs();
+            let glyph = glyphs[(state.tick as usize) % glyphs.len()];
             buf[(x, y)].set_symbol(glyph.to_string().as_str()).set_style(glyph_style);
         }
     }
@@ -217,5 +265,26 @@ mod tests {
         let mut state = SpinnerState::default();
         Spinner::new().label("X").render(Rect::new(0, 0, 0, 0), &mut buf, &mut state);
         assert_eq!(*buf.area(), Rect::new(0, 0, 0, 0));
+    }
+
+    #[test]
+    fn arrow_shape_renders_arrow_glyph_at_tick_zero() {
+        // At tick 0 the Arrow shape shows glyphs[0] = '↻', never the Braille
+        // glyphs[0] = '⠋'.
+        let mut buf = Buffer::empty(Rect::new(0, 0, W, H));
+        let mut state = SpinnerState { tick: 0 };
+        let spinner = Spinner::new().theme(Theme::Cyberpunk).shape(SpinnerShape::Arrow);
+        StatefulWidget::render(spinner, Rect::new(0, 0, W, H), &mut buf, &mut state);
+
+        assert_eq!(
+            buf[(0, 0)].symbol(),
+            "↻",
+            "Arrow shape at tick 0 should render '↻'"
+        );
+        assert_ne!(
+            buf[(0, 0)].symbol(),
+            "⠋",
+            "Arrow shape must not render the Braille first glyph '⠋'"
+        );
     }
 }
