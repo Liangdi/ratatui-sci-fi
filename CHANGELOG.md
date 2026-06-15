@@ -1,3 +1,8 @@
+## [0.1.2] - 2026-06-15
+
+### 🚜 Refactor
+
+- Flatten workspace into a single root crate
 ## [0.1.1] - 2026-06-15
 
 ### 🚀 Features
