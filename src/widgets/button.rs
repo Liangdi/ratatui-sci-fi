@@ -23,21 +23,28 @@
 //! - The label is horizontally centered in `area`; rendering targets the
 //!   vertical middle row. All glyphs are width-1.
 
-use ratatui::{buffer::Buffer, layout::Rect, widgets::Widget};
+use ratatui::{buffer::Buffer, layout::Rect, style::Style, widgets::Widget};
 use ratatui_style::NodeRef;
 
 use crate::Theme;
 
-/// Visual form of a [`Button`]'s flanking markers.
+/// Visual form of a [`Button`].
 ///
-/// Selects the end glyphs that frame the label; colors stay on the CSS
-/// cascade (`Button` / `Button.focus`), untouched by this enum. The
-/// [`ButtonShape::Bracket`] default reproduces the original `[ label ]` /
-/// `▶ label ◀` look byte-for-byte, so existing tests pass unchanged.
+/// Two kinds, both purely glyph/layout — colors stay on the CSS cascade
+/// (`Button` / `Button.focus`), untouched by this enum:
+/// - **Inline** shapes flank the label with marker glyphs on a single row
+///   (`[ label ]`, `« label »`, …).
+/// - **Boxed** shapes ([`Pill`](ButtonShape::Pill)/[`Framed`](ButtonShape::Framed))
+///   draw a multi-row border around the label when the area is at least 3 rows
+///   tall and 2 columns wide; otherwise they degrade to the inline Bracket look.
 ///
-/// Every marker glyph is Unicode width-1 (see convention #5 at the crate
-/// root), keeping the button's `chars().count() == display_width` centering
-/// math valid.
+/// The [`ButtonShape::Bracket`] default reproduces the original
+/// `[ label ]` / `▶ label ◀` look byte-for-byte, so existing tests pass
+/// unchanged.
+///
+/// Every glyph is Unicode width-1 (see convention #5 at the crate root),
+/// keeping the button's `chars().count() == display_width` centering math
+/// valid.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum ButtonShape {
     /// `[ label ]` idle, `▶ label ◀` focused — the original look.
@@ -51,10 +58,60 @@ pub enum ButtonShape {
     Pipe,
     /// `> label <` idle, `▸ label ◂` focused.
     Arrow,
+    /// Rounded-capsule border (`╭─╮` / `│ label │` / `╰─╯`); needs ≥3 rows.
+    Pill,
+    /// Square-frame border (`┌─┐` / `│ label │` / `└─┘`); needs ≥3 rows.
+    Framed,
+}
+
+/// Border glyphs for a boxed [`ButtonShape`] (`Pill` / `Framed`).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct BoxGlyphs {
+    /// Top-left, top-right, bottom-left, bottom-right corners.
+    pub tl: char,
+    pub tr: char,
+    pub bl: char,
+    pub br: char,
+    /// Left/right vertical edge of the label row.
+    pub side: char,
+    /// Top/bottom horizontal fill between the corners.
+    pub horizontal: char,
 }
 
 impl ButtonShape {
-    /// The `(left, right)` marker pair for the given focus state.
+    /// Whether this shape draws a multi-row border box (vs. inline markers).
+    #[must_use]
+    pub const fn is_boxed(self) -> bool {
+        matches!(self, Self::Pill | Self::Framed)
+    }
+
+    /// The border glyph set for a boxed shape, or `None` for inline shapes.
+    #[must_use]
+    pub const fn box_glyphs(self) -> Option<BoxGlyphs> {
+        match self {
+            Self::Pill => Some(BoxGlyphs {
+                tl: '╭',
+                tr: '╮',
+                bl: '╰',
+                br: '╯',
+                side: '│',
+                horizontal: '─',
+            }),
+            Self::Framed => Some(BoxGlyphs {
+                tl: '┌',
+                tr: '┐',
+                bl: '└',
+                br: '┘',
+                side: '│',
+                horizontal: '─',
+            }),
+            _ => None,
+        }
+    }
+
+    /// The `(left, right)` marker pair for an inline render. Boxed shapes
+    /// return the Bracket pair — used only when a box doesn't fit and the
+    /// render degrades to the inline look.
     #[must_use]
     pub const fn markers(self, focused: bool) -> (char, char) {
         match (self, focused) {
@@ -68,6 +125,10 @@ impl ButtonShape {
             (Self::Pipe, true) => ('▐', '▌'),
             (Self::Arrow, false) => ('>', '<'),
             (Self::Arrow, true) => ('▸', '◂'),
+            // Boxed shapes have no inline markers; their cramped-area fallback
+            // reuses the Bracket pair.
+            (Self::Pill | Self::Framed, false) => ('[', ']'),
+            (Self::Pill | Self::Framed, true) => ('▶', '◀'),
         }
     }
 }
@@ -157,27 +218,9 @@ impl Widget for Button {
             sheet.compute(&NodeRef::new("Button"), None).to_style()
         };
 
-        // Pick the marker glyphs from the configured shape + focus state.
-        let (left, right) = self.shape.markers(self.focused);
-
-        // Compose the inner content: `glyph label glyph`.
-        // Use a single leading/trailing space so the label breathes inside the
-        // brackets, matching the spec examples (`[ 确认 ]` / `▶ 确认 ◀`).
-        let content = format!("{left} {label} {right}", label = self.label);
-
-        // We render on the vertical middle row of the area.
-        let row = area.y + area.height / 2;
-
-        // Horizontally center `content` within `area`. Every glyph we emit is
-        // ASCII or a width-1 char, so char count == display width here.
-        let content_width = content.chars().count() as u16;
-        let available = area.width;
-        let content_width = content_width.min(available);
-        let x = area.x + available.saturating_sub(content_width) / 2;
-
-        // Whole-button background + base style from the cascade. Focused text is
-        // REVERSED so the bright accent label lands inverted on the accent fill
-        // — the classic "highlighted" console look.
+        // Whole-button background + base style from the cascade. Focused text
+        // is REVERSED so the bright accent label lands inverted on the accent
+        // fill — the classic "highlighted" console look.
         let area_style = computed;
         let text_style = if self.focused {
             computed.reversed()
@@ -189,8 +232,70 @@ impl Widget for Button {
         // the highlight when focused.
         buf.set_style(area, area_style);
 
-        // Draw the centered content with the text style.
-        buf.set_string(x, row, content, text_style);
+        // Boxed shapes (Pill / Framed) draw a multi-row border when the area
+        // has room (≥3 rows, ≥2 cols). Inline shapes — and boxed shapes that
+        // don't fit — fall back to the single-row marker render.
+        if self.shape.is_boxed() && area.height >= 3 && area.width >= 2 {
+            // `is_boxed()` true ⟹ `box_glyphs()` is `Some`.
+            let glyphs = self.shape.box_glyphs().expect("boxed shape has glyphs");
+            self.render_boxed(area, buf, text_style, glyphs);
+        } else {
+            self.render_inline(area, buf, text_style);
+        }
+    }
+}
+
+impl Button {
+    /// Single-row render: `{left} {label} {right}` centered on the middle row.
+    /// Used by every inline shape, and as the fallback when a boxed shape's
+    /// area is too short or narrow for its border.
+    fn render_inline(self, area: Rect, buf: &mut Buffer, text_style: Style) {
+        let (left, right) = self.shape.markers(self.focused);
+        // `glyph label glyph` with a space either side so the label breathes
+        // inside the markers. All glyphs are width-1.
+        let content = format!("{left} {label} {right}", label = self.label);
+
+        let row = area.y + area.height / 2;
+        let content_width = content.chars().count() as u16;
+        let content_width = content_width.min(area.width);
+        let x = area.x + area.width.saturating_sub(content_width) / 2;
+        buf.set_string(x, row, &content, text_style);
+    }
+
+    /// Multi-row render: a border box with the label centered on the middle
+    /// row. Caller guarantees `area.height >= 3 && area.width >= 2`.
+    fn render_boxed(self, area: Rect, buf: &mut Buffer, text_style: Style, glyphs: BoxGlyphs) {
+        let row_top = area.y;
+        let row_bot = area.y + area.height - 1;
+        let row_mid = area.y + area.height / 2;
+
+        // Top + bottom edges: `corner (horizontal fill) corner`.
+        let fill: String =
+            std::iter::repeat_n(glyphs.horizontal, area.width.saturating_sub(2) as usize)
+                .collect();
+        let top = format!("{}{}{}", glyphs.tl, fill, glyphs.tr);
+        let bot = format!("{}{}{}", glyphs.bl, fill, glyphs.br);
+        buf.set_string(area.x, row_top, &top, text_style);
+        buf.set_string(area.x, row_bot, &bot, text_style);
+
+        // Interior rows: vertical sides span every row between the corners; the
+        // middle row additionally carries the centered (possibly clipped) label.
+        let inner_w = area.width.saturating_sub(2);
+        let label: String = self.label.chars().take(inner_w as usize).collect();
+        let label_w = label.chars().count() as u16;
+        let pad = inner_w.saturating_sub(label_w);
+        let left_pad = " ".repeat((pad / 2) as usize);
+        let right_pad = " ".repeat((pad - pad / 2) as usize);
+        let mid_row = format!("{}{left_pad}{label}{right_pad}{}", glyphs.side, glyphs.side);
+        let blank = " ".repeat(inner_w as usize);
+        let side_row = format!("{}{blank}{}", glyphs.side, glyphs.side);
+        for r in (row_top + 1)..row_bot {
+            if r == row_mid {
+                buf.set_string(area.x, r, &mid_row, text_style);
+            } else {
+                buf.set_string(area.x, r, &side_row, text_style);
+            }
+        }
     }
 }
 
@@ -383,5 +488,80 @@ mod tests {
             !text_angle.contains('['),
             "Angle idle must not use the Bracket '[': {text_angle:?}"
         );
+    }
+
+    #[test]
+    fn pill_shape_renders_rounded_border() {
+        use super::ButtonShape;
+        // H=3 → the box fits: rounded corners top-left / bottom-right, label
+        // centered on the middle row.
+        let buf = render(Button::new("OK").focused(true).shape(ButtonShape::Pill));
+        assert_eq!(buf[(0, 0)].symbol(), "╭", "Pill top-left corner");
+        assert_eq!(buf[(15, 2)].symbol(), "╯", "Pill bottom-right corner");
+        let mid = row_text(&buf, H / 2);
+        assert!(mid.contains('O') && mid.contains('K'), "label on middle row: {mid:?}");
+    }
+
+    #[test]
+    fn framed_shape_renders_square_border() {
+        use super::ButtonShape;
+        let buf = render(Button::new("OK").focused(true).shape(ButtonShape::Framed));
+        assert_eq!(buf[(0, 0)].symbol(), "┌", "Framed top-left corner");
+        assert_eq!(buf[(15, 2)].symbol(), "┘", "Framed bottom-right corner");
+    }
+
+    #[test]
+    fn pill_shape_degrades_when_too_short() {
+        use super::ButtonShape;
+        // A 1-row-tall area can't hold the 3-row box, so the Pill degrades to
+        // the inline Bracket look — no rounded corner appears, but the label
+        // still renders.
+        let mut buf = Buffer::empty(Rect::new(0, 0, W, 1));
+        Button::new("OK")
+            .focused(false)
+            .shape(ButtonShape::Pill)
+            .render(Rect::new(0, 0, W, 1), &mut buf);
+        let row = row_text(&buf, 0);
+        assert!(!row.contains('╭'), "degraded render must not draw the box: {row:?}");
+        assert!(row.contains('O') && row.contains('K'), "label still renders: {row:?}");
+    }
+
+    #[test]
+    fn pill_focused_paints_accent_background() {
+        use super::ButtonShape;
+        let theme = Theme::Cyberpunk;
+        let accent = theme.palette().accent.color();
+        let buf = render(
+            Button::new("OK")
+                .theme(theme)
+                .focused(true)
+                .shape(ButtonShape::Pill),
+        );
+        // Every cell of the W×H box area carries the accent background.
+        for y in 0..H {
+            for x in 0..W {
+                assert_eq!(buf[(x, y)].bg, accent, "cell ({x},{y}) bg");
+            }
+        }
+    }
+
+    #[test]
+    fn pill_tall_box_has_sides_on_every_interior_row() {
+        use super::ButtonShape;
+        // A 16×4 Pill: vertical sides must appear on BOTH interior rows (not
+        // just the label row) so the box reads as a solid rectangle.
+        let mut buf = Buffer::empty(Rect::new(0, 0, 16, 4));
+        Button::new("OK")
+            .focused(false)
+            .shape(ButtonShape::Pill)
+            .render(Rect::new(0, 0, 16, 4), &mut buf);
+        // Rows 1 and 2 are interior (row 0 = top, row 3 = bottom); each needs
+        // the `│` side glyph at both edges.
+        assert_eq!(buf[(0, 1)].symbol(), "│", "interior row 1 left side");
+        assert_eq!(buf[(15, 1)].symbol(), "│", "interior row 1 right side");
+        assert_eq!(buf[(0, 2)].symbol(), "│", "interior row 2 left side");
+        assert_eq!(buf[(15, 2)].symbol(), "│", "interior row 2 right side");
+        assert_eq!(buf[(0, 0)].symbol(), "╭", "top-left corner");
+        assert_eq!(buf[(15, 3)].symbol(), "╯", "bottom-right corner");
     }
 }

@@ -359,9 +359,9 @@ fn buttons_cell(f: &mut ratatui::Frame<'_>, theme: Theme, area: Rect, app: &mut 
     let inner = cell(f, theme, area, "BUTTONS");
     let rows = Layout::vertical([Constraint::Min(1), Constraint::Min(1), Constraint::Min(1)])
         .split(inner);
-    // Each button shows a different marker shape so the gallery exercises the
-    // whole ButtonShape range at once.
-    let shapes = [ButtonShape::Bracket, ButtonShape::Angle, ButtonShape::Chevron];
+    // Each button shows a different shape so the gallery exercises the inline
+    // (Bracket) and boxed (Pill / Framed) forms at once.
+    let shapes = [ButtonShape::Bracket, ButtonShape::Pill, ButtonShape::Framed];
     for (i, label) in BUTTONS.iter().enumerate() {
         let button = Button::new(*label)
             .focused(i == app.button_focus)
