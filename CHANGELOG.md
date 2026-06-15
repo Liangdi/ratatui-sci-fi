@@ -1,15 +1,29 @@
-## [Unreleased]
+## [0.2.0] - 2026-06-15
 
 ### 🚀 Features
 
-- *(widgets)* Add 3 sci-fi chart widgets: `SpectrumBars` (animated vertical-bar spectrum analyzer), `RadialGauge` (eased reactor-core dial), and `HeatGrid` (sensor-array heatmap) — each a stateful `StatefulWidget` with self-generated demo mode + external feed, a `…Shape` glyph/geometry variant, and CSS-cascade theming (`Spectrum` / `Dial` / `Heat` nodes)
-- *(examples)* Add dedicated `charts` example showcasing all three chart widgets with `t` theme + `s` shape-variant cycling
+- *(widgets)* Add shape variants across the widget system
+- *(button)* Add multi-row Pill / Framed shape variants
+- *(widgets)* Add SpectrumBars / RadialGauge / HeatGrid chart widgets
+- *(widgets)* Add Sparkline / DonutChart / HBarChart / ScatterPlot widgets
+- *(widgets)* Add CommLog streaming comms feed
+- *(widgets)* Add CandlestickChart / TreeMap / AreaChart / ActivityRings / StripChart / RadialBarChart / Compass
+- Add markdown rendering, CommLog chat mode, and an AI agent console example
 
+### 📚 Documentation
+
+- *(examples)* Add a dedicated button shape-variant example
+- *(agents)* Emphasize the no-branch-switch constraint
+- *(examples)* Capture and embed the agent_console screenshot
 ## [0.1.2] - 2026-06-15
 
 ### 🚜 Refactor
 
 - Flatten workspace into a single root crate
+
+### ⚙️ Miscellaneous Tasks
+
+- Release ratatui-sci-fi version 0.1.2
 ## [0.1.1] - 2026-06-15
 
 ### 🚀 Features
