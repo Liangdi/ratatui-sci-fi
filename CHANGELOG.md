@@ -1,11 +1,21 @@
-## [unreleased]
+## [0.1.1] - 2026-06-15
 
 ### 🚀 Features
 
 - 实现 sci-fi 组件库核心 — 主题 + 10 组件 + 音效引擎 + 示例
-- 新增 4 个主题：Bloodmoon（血红）、Nebula（星云紫）、Arctic（极地青）、Sentinel（单色白灰），主题数 4 → 8
-- 扩充组件 CSS（`COMPONENT_CSS`），覆盖全部 10 个 widget 节点类型（Gauge / Biometric / List / Matrix / Glitch / Target / Radar / Boot / Popup），为 widget 接入级联铺路
+- 添加 widget_gallery 示例 — 3×3 网格展示全部 10 个组件
+- *(themes)* Add 4 themes + extend component CSS to all widgets
+- *(docs)* Headless screenshot generator + README demo GIFs
+- *(widgets)* Add 7 basic widgets + migrate audio to rodio 0.22
+
+### 🚜 Refactor
+
+- *(widgets)* Drive Button + ScanList via stylesheet cascade
+- *(widgets)* Migrate glitch/target/boot/gauge/biometric to cascade
 
 ### ⚙️ Miscellaneous Tasks
 
 - Init
+- Add CHANGELOG
+- Update
+- Release

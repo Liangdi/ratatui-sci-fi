@@ -1,8 +1,5 @@
-[workspace]
-resolver = "3"
-members = ["crates/ratatui-sci-fi"]
-
-[workspace.package]
+[package]
+name = "ratatui-sci-fi"
 version = "0.1.1"
 edition = "2024"
 license = "MIT"
@@ -11,17 +8,41 @@ repository = "https://github.com/Liangdi/ratatui-sci-fi"
 description = "Sci-Fi themed widget collection for the Ratatui TUI ecosystem"
 keywords = ["ratatui", "tui", "sci-fi", "terminal", "widgets"]
 categories = ["command-line-interface"]
+readme = "README.md"
 
-[workspace.dependencies]
+[features]
+default = []
+# Enable the procedural audio engine (rodio + cpal backend). Off by default so
+# the widget library doesn't force native audio dev-deps on consumers that only
+# want visuals. The `Sound`/`SoundSpec`/`CATALOG` catalog is always available;
+# only `AudioSystem` playback needs this feature.
+audio = ["dep:rodio"]
+
+[dependencies]
 ratatui = "0.30.1"
 ratatui-style = "0.2.0"
+# Input-event types for `TextInputState::handle_key`. ratatui's default features
+# already pull crossterm in transitively, but declaring it directly keeps the
+# `KeyEvent` type stable and intentional. The library itself does no terminal
+# I/O — it only consumes the event type the app's chosen backend produces.
 crossterm = "0.29.0"
 # rodio 0.22: `default-features = false` drops rodio's bundled audio decoders
 # (we synthesize raw f32 samples, so we never decode files). We then re-enable
 # `playback` only — that pulls in `cpal` and exposes the device-sink + mixer +
 # player API (`DeviceSinkBuilder`/`MixerDeviceSink`/`Player`), without any of
 # the symphonia codec crates.
-rodio = { version = "0.22", default-features = false, features = ["playback"] }
+rodio = { version = "0.22", default-features = false, features = ["playback"], optional = true }
+
+# Only the examples need a terminal/event backend; the library itself stays
+# backend-agnostic so downstream apps can pick their own.
+[dev-dependencies]
+crossterm = "0.29.0"
+# Headless screenshot capture (`examples/capture_screenshots.rs`): renders the
+# example TUIs to an off-screen `Buffer` via `TestBackend`, rasterizes each cell
+# to pixels, and emits PNG frames that ffmpeg stitches into looping APNGs. None
+# of this ships to consumers — it's a dev-only tool for regenerating README art.
+ab_glyph = "0.2"
+png = "0.18"
 
 [profile.release]
 lto = true

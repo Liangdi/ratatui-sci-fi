@@ -172,7 +172,7 @@ Accessing a theme: `Theme::Cyberpunk.palette()` returns native `Color`s; `Theme:
 
 ## 🔊 Audio
 
-Effects are **synthesized in pure Rust** by the [synth](crates/ratatui-sci-fi/src/audio/synth.rs) module (no audio files, no licensing risk); playback is handled by [`AudioSystem`](crates/ratatui-sci-fi/src/audio/system.rs) under the `audio` feature.
+Effects are **synthesized in pure Rust** by the [synth](src/audio/synth.rs) module (no audio files, no licensing risk); playback is handled by [`AudioSystem`](src/audio/system.rs) under the `audio` feature.
 
 **Catalog** (the `Sound` enum; always available, zero-dependency):
 
@@ -201,25 +201,23 @@ if let Some(mut audio) = AudioSystem::init() {
 }
 ```
 
-**Recommended event → sound architecture**: widgets hold no callbacks; the app layer fires sounds in the event loop (see the [dashboard example](crates/ratatui-sci-fi/examples/dashboard.rs): ScanList navigation → `UiTick`, AlertPopup shown → `AlertSiren`, radar revolution → `RadarEcho`).
+**Recommended event → sound architecture**: widgets hold no callbacks; the app layer fires sounds in the event loop (see the [dashboard example](examples/dashboard.rs): ScanList navigation → `UiTick`, AlertPopup shown → `AlertSiren`, radar revolution → `RadarEcho`).
 
 ---
 
 ## 🏗️ Architecture
 
 ```text
-ratatui-sci-fi/                  # Cargo workspace
-├── Cargo.toml                   # [workspace] + shared deps
-└── crates/ratatui-sci-fi/
-    ├── Cargo.toml               # member crate; the `audio` feature lives here
-    ├── src/
-    │   ├── lib.rs               # conventions + `pub use widgets::*` re-exports
-    │   ├── themes/              # Palette / Theme / ratatui-style Stylesheet
-    │   ├── widgets/             # 10 widgets
-    │   └── audio/               # catalog (Sound/CATALOG) + synth + AudioSystem
-    └── examples/
-        ├── dashboard.rs         # composite sci-fi dashboard (all widgets + audio)
-        └── matrix_rain.rs       # standalone Matrix rain demo
+ratatui-sci-fi/                  # single crate (library)
+├── Cargo.toml                   # package + deps; the `audio` feature lives here
+├── src/
+│   ├── lib.rs                   # conventions + `pub use widgets::*` re-exports
+│   ├── themes/                  # Palette / Theme / ratatui-style Stylesheet
+│   ├── widgets/                 # 10 widgets
+│   └── audio/                   # catalog (Sound/CATALOG) + synth + AudioSystem
+└── examples/
+    ├── dashboard.rs             # composite sci-fi dashboard (all widgets + audio)
+    └── matrix_rain.rs           # standalone Matrix rain demo
 ```
 
 - **Two theming paths**: use `palette()` for raw `Color`s (good for direct `Canvas` drawing), or `stylesheet()` for CSS-cascade styling (good for declarative styles). Same RGB source, no drift.

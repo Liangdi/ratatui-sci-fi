@@ -178,7 +178,7 @@ fn ui(f: &mut Frame, state: &mut SciFiRadarState) {
 
 ## 🔊 音效系统
 
-音效由 [synth](crates/ratatui-sci-fi/src/audio/synth.rs) 模块**纯 Rust 合成**(无音频文件、无版权风险),播放由 `audio` feature 下的 [`AudioSystem`](crates/ratatui-sci-fi/src/audio/system.rs) 负责。
+音效由 [synth](src/audio/synth.rs) 模块**纯 Rust 合成**(无音频文件、无版权风险),播放由 `audio` feature 下的 [`AudioSystem`](src/audio/system.rs) 负责。
 
 **目录**(`Sound` 枚举,始终可用、零依赖):
 
@@ -206,25 +206,23 @@ if let Some(mut audio) = AudioSystem::init() {
 }
 ```
 
-**事件 → 音效的推荐架构**:widget 不持有回调,由 app 层在事件循环里触发(参见 [dashboard 示例](crates/ratatui-sci-fi/examples/dashboard.rs):ScanList 移动 → `UiTick`,AlertPopup 弹出 → `AlertSiren`,雷达转一圈 → `RadarEcho`)。
+**事件 → 音效的推荐架构**:widget 不持有回调,由 app 层在事件循环里触发(参见 [dashboard 示例](examples/dashboard.rs):ScanList 移动 → `UiTick`,AlertPopup 弹出 → `AlertSiren`,雷达转一圈 → `RadarEcho`)。
 
 ---
 
 ## 🏗️ 架构
 
 ```text
-ratatui-sci-fi/                  # Cargo workspace
-├── Cargo.toml                   # [workspace] + 共享依赖
-└── crates/ratatui-sci-fi/
-    ├── Cargo.toml               # member crate;`audio` feature 在此
-    ├── src/
-    │   ├── lib.rs               # 约定 + `pub use widgets::*` 根级再导出
-    │   ├── themes/              # Palette / Theme / ratatui-style Stylesheet
-    │   ├── widgets/             # 16 个组件
-    │   └── audio/               # 目录(Sound/CATALOG)+ synth + AudioSystem
-    └── examples/
-        ├── dashboard.rs         # 综合科幻仪表盘(全组件 + 音效)
-        └── matrix_rain.rs       # 数字雨独立演示
+ratatui-sci-fi/                  # 单 crate(库)
+├── Cargo.toml                   # package + 依赖;`audio` feature 在此
+├── src/
+│   ├── lib.rs                   # 约定 + `pub use widgets::*` 根级再导出
+│   ├── themes/                  # Palette / Theme / ratatui-style Stylesheet
+│   ├── widgets/                 # 16 个组件
+│   └── audio/                   # 目录(Sound/CATALOG)+ synth + AudioSystem
+└── examples/
+    ├── dashboard.rs             # 综合科幻仪表盘(全组件 + 音效)
+    └── matrix_rain.rs           # 数字雨独立演示
 ```
 
 - **双路径主题**:直接用 `palette()` 取 `Color`(适于 Canvas 直绘),或用 `stylesheet()` 走 CSS cascade(适于声明式样式)。同源 RGB,不漂移。

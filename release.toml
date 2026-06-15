@@ -1,1 +1,5 @@
-pre-release-hook = ["git", "cliff", "-o", "CHANGELOG.md", "--tag", "{{version}}" ]
+# Generate the changelog before the release commit. cargo-release runs this
+# hook from the package root (== repo root, now that the crate lives at the top
+# level), so a bare `-o CHANGELOG.md` lands at the project root. {{version}} is
+# a cargo-release placeholder that labels the new release's commits.
+pre-release-hook = ["git", "cliff", "-o", "CHANGELOG.md", "--tag", "{{version}}"]
