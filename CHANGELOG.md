@@ -1,3 +1,10 @@
+## [Unreleased]
+
+### 🚀 Features
+
+- *(widgets)* Add 3 sci-fi chart widgets: `SpectrumBars` (animated vertical-bar spectrum analyzer), `RadialGauge` (eased reactor-core dial), and `HeatGrid` (sensor-array heatmap) — each a stateful `StatefulWidget` with self-generated demo mode + external feed, a `…Shape` glyph/geometry variant, and CSS-cascade theming (`Spectrum` / `Dial` / `Heat` nodes)
+- *(examples)* Add dedicated `charts` example showcasing all three chart widgets with `t` theme + `s` shape-variant cycling
+
 ## [0.1.2] - 2026-06-15
 
 ### 🚜 Refactor

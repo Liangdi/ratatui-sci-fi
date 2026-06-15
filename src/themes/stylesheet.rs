@@ -78,6 +78,33 @@ const COMPONENT_CSS: &str = r#"
     Biometric.trace3  { color: var(--warn); }
     Biometric.trace4  { color: var(--alert); }
 
+    /* Spectrum analyzer — animated vertical bar chart. Base node supplies the
+       chart background; level classes color each bar by its current value
+       (ok nominal → warn mid → alert spiking); empty colors the cells above
+       each bar's top. */
+    Spectrum        { color: var(--accent); background: var(--bg); }
+    Spectrum.ok     { color: var(--ok); }
+    Spectrum.warn   { color: var(--warn); }
+    Spectrum.alert  { color: var(--alert); }
+    Spectrum.empty  { color: var(--muted); }
+    Spectrum.label  { color: var(--fg); }
+
+    /* Radial gauge — circular reactor dial (canvas-drawn). Base/accent drives
+       the needle + arc fill; grid colors the rim ticks/ring; level escalates
+       the value color by threshold. */
+    Dial          { color: var(--accent); background: var(--bg); }
+    Dial.grid     { color: var(--muted); }
+    Dial.ok       { color: var(--ok); }
+    Dial.warn     { color: var(--warn); }
+    Dial.alert    { color: var(--alert); }
+
+    /* Heat grid — sensor-array heatmap. Base carries the background; cells
+       interpolate --bg → --accent by intensity, and the hottest tier escalates
+       to --alert. */
+    Heat        { background: var(--bg); }
+    Heat.grid   { color: var(--muted); }
+    Heat.hot    { color: var(--alert); }
+
     /* Scan list — selected row gets an accent-on-panel highlight. */
     List          { color: var(--fg); }
     List.selected { color: var(--accent); background: var(--panel); }
