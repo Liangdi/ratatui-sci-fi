@@ -2,22 +2,28 @@
 //!
 //! Where the `dashboard` example composites the widgets into a single HUD, this
 //! one isolates each component in its own panel so you can see exactly what it
-//! does and how it reacts. The 3×3 grid showcases all ten widgets:
+//! does and how it reacts. The 5×3 grid showcases all fifteen grid widgets,
+//! grouped top→bottom by kind (basics → containers → charts → effects):
 //!
 //! ```text
 //! ┌──────────────┬───────────────┬──────────────┐
-//! │ BUTTONS      │ ENERGY GAUGES │ GLITCH TEXT  │
+//! │ BUTTONS      │ TOGGLE        │ VALUE        │   basics
 //! ├──────────────┼───────────────┼──────────────┤
-//! │ RADAR        │ BIOMETRICS    │ SCAN LIST    │
+//! │ SPINNER      │ TEXT INPUT    │ DIVIDER      │   basics
 //! ├──────────────┼───────────────┼──────────────┤
-//! │ BOOT SEQUENCE│ MATRIX RAIN   │ TARGET LOCK  │
+//! │ PANEL        │ TARGET LOCK   │ ENERGY GAUGE │   containers
+//! ├──────────────┼───────────────┼──────────────┤
+//! │ RADAR        │ BIOMETRICS    │ SCAN LIST    │   charts
+//! ├──────────────┼───────────────┼──────────────┤
+//! │ BOOT SEQUENCE│ MATRIX RAIN   │ GLITCH TEXT  │   effects
 //! └──────────────┴───────────────┴──────────────┘
 //! ```
 //!
 //! The `AlertPopup` is an overlay — press `a` to pop it.
 //!
-//! `←/→` move button focus · `↑/↓` move the list cursor · `t` cycles the four
-//! themes · `a` toggles the alert popup · `q` / `Esc` quits.
+//! `←/→` move button focus · `↑/↓` move the list cursor · type into the text
+//! input · `space` toggles the toggle · `t` cycles the four themes · `a` toggles
+//! the alert popup · `q` / `Esc` quits.
 //!
 //! ```sh
 //! cargo run -p ratatui-sci-fi --example widget_gallery
@@ -35,14 +41,14 @@ use ratatui::{
     backend::CrosstermBackend,
     layout::{Constraint, Layout, Rect},
     style::Style,
-    text::{Line, Span},
     widgets::{Block, Clear, Paragraph},
     Terminal,
 };
 use ratatui_sci_fi::{
     AlertPopup, AlertPopupState, BiometricChart, BiometricChartState, Blip, BootSequence,
-    BootSequenceState, Button, EnergyGauge, GlitchText, GlitchTextState, MatrixRain,
-    MatrixRainState, ScanList, ScanListState, SciFiRadar, SciFiRadarState, TargetLock, Theme,
+    BootSequenceState, Button, Divider, EnergyGauge, GlitchText, GlitchTextState, Level,
+    MatrixRain, MatrixRainState, Panel, ScanList, ScanListState, SciFiRadar, SciFiRadarState,
+    Spinner, SpinnerState, TargetLock, TextInput, TextInputState, Theme, Toggle, Value,
 };
 
 type Term = Terminal<CrosstermBackend<Stdout>>;
@@ -80,6 +86,7 @@ pub struct App {
     frame: u64,
     theme_idx: usize,
     button_focus: usize,
+    toggle_on: bool,
     /// Drives the boot replay loop, independent of each state's own clock.
     boot_clock: u64,
     alert_visible: bool,
@@ -91,6 +98,8 @@ pub struct App {
     log: ScanListState,
     boot: BootSequenceState,
     rain: MatrixRainState,
+    spinner: SpinnerState,
+    input: TextInputState,
     alert: AlertPopupState,
 }
 
@@ -104,6 +113,7 @@ impl App {
             frame: 0,
             theme_idx: 0,
             button_focus: 0,
+            toggle_on: true,
             boot_clock: 0,
             alert_visible: false,
             title: GlitchTextState::default(),
@@ -114,6 +124,8 @@ impl App {
             log: ScanListState::default(),
             boot: BootSequenceState::default(),
             rain: MatrixRainState::default(),
+            spinner: SpinnerState::default(),
+            input: TextInputState::default(),
             alert: AlertPopupState::default(),
         }
     }
@@ -138,6 +150,8 @@ impl App {
         self.bio.tick();
         self.log.tick();
         self.rain.tick();
+        self.spinner.tick();
+        self.input.tick();
 
         // Boot reveal: advance, then replay after a pause so the cell never
         // sits idle.
@@ -177,12 +191,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                     }
                 }
                 KeyCode::Enter if app.alert_visible => app.alert_visible = false,
-                // ←/→ steer button focus; ↑/↓ steer the list cursor — separate
-                // axes so the two never collide.
-                KeyCode::Left => {
-                    app.button_focus = (app.button_focus + BUTTONS.len() - 1) % BUTTONS.len();
-                }
-                KeyCode::Right => app.button_focus = (app.button_focus + 1) % BUTTONS.len(),
+                // `space` flips the toggle.
+                KeyCode::Char(' ') if !app.alert_visible => app.toggle_on = !app.toggle_on,
+                // Typing into the text input. Letters/digits/backspace/arrows
+                // go to the field; navigation keys only when not already
+                // claimed by another widget below.
+                KeyCode::Char(c) if !app.alert_visible && c != ' ' => app.input.handle_key(key),
+                KeyCode::Backspace if !app.alert_visible => app.input.handle_key(key),
+                KeyCode::Left | KeyCode::Right if !app.alert_visible => app.input.handle_key(key),
+                // ↑/↓ steer the list cursor — separate axis from the input.
                 KeyCode::Up => {
                     app.log.selected = (app.log.selected + LOG_ITEMS.len() - 1) % LOG_ITEMS.len();
                 }
@@ -210,55 +227,77 @@ pub fn draw(f: &mut ratatui::Frame<'_>, app: &mut App) {
     // Header: glitching title, horizontally + vertically centered in its band.
     render_title(f, theme, outer[0], &mut app.title);
 
-    // 3×3 grid of labelled cells.
-    let rows = Layout::vertical([Constraint::Min(1), Constraint::Min(1), Constraint::Min(1)])
-        .split(outer[1]);
-    let split3 =
-        |row: Rect| Layout::horizontal([Constraint::Min(1), Constraint::Min(1), Constraint::Min(1)]).split(row);
+    // 5×3 grid of labelled cells.
+    let rows = Layout::vertical([
+        Constraint::Min(1),
+        Constraint::Min(1),
+        Constraint::Min(1),
+        Constraint::Min(1),
+        Constraint::Min(1),
+    ])
+    .split(outer[1]);
+    let split3 = |row: Rect| {
+        Layout::horizontal([Constraint::Min(1), Constraint::Min(1), Constraint::Min(1)]).split(row)
+    };
     let r0 = split3(rows[0]);
     let r1 = split3(rows[1]);
     let r2 = split3(rows[2]);
+    let r3 = split3(rows[3]);
+    let r4 = split3(rows[4]);
 
+    // Row 0 — basics.
     buttons_cell(f, theme, r0[0], app);
-    gauges_cell(f, theme, r0[1], app.frame);
-    glitch_cell(f, theme, r0[2], app);
+    toggle_cell(f, theme, r0[1], app);
+    value_cell(f, theme, r0[2], app.frame);
 
-    let radar_area = cell(f, theme, r1[0], "RADAR");
+    // Row 1 — basics.
+    spinner_cell(f, theme, r1[0], app);
+    input_cell(f, theme, r1[1], app);
+    divider_cell(f, theme, r1[2]);
+
+    // Row 2 — containers.
+    panel_cell(f, theme, r2[0], app.frame);
+    target_lock_cell(f, theme, r2[1], app);
+    gauges_cell(f, theme, r2[2], app.frame);
+
+    // Row 3 — charts.
+    let radar_area = cell(f, theme, r3[0], "RADAR");
     f.render_stateful_widget(
         SciFiRadar::new().sweep_speed(0.18).theme(theme),
         radar_area,
         &mut app.radar,
     );
 
-    let bio_area = cell(f, theme, r1[1], "BIOMETRICS");
+    let bio_area = cell(f, theme, r3[1], "BIOMETRICS");
     f.render_stateful_widget(
         BiometricChart::new(3).window(60).theme(theme),
         bio_area,
         &mut app.bio,
     );
 
-    let list_area = cell(f, theme, r1[2], "SCAN LIST");
+    let list_area = cell(f, theme, r3[2], "SCAN LIST");
     f.render_stateful_widget(
         ScanList::new(LOG_ITEMS.iter().copied()).theme(theme),
         list_area,
         &mut app.log,
     );
 
-    boot_cell(f, theme, r2[0], app);
+    // Row 4 — effects.
+    boot_cell(f, theme, r4[0], app);
 
-    let rain_area = cell(f, theme, r2[1], "MATRIX RAIN");
+    let rain_area = cell(f, theme, r4[1], "MATRIX RAIN");
     f.render_stateful_widget(
         MatrixRain::new().density(0.85).speed(0.5).theme(theme),
         rain_area,
         &mut app.rain,
     );
 
-    target_lock_cell(f, theme, r2[2], app);
+    glitch_cell(f, theme, r4[2], app);
 
     // Footer: keymap + active theme.
     f.render_widget(
         Paragraph::new(format!(
-            " [←→] button   [↑↓] list   [t] theme: {}   [a] alert   [q] quit",
+            " [←→] input  [↑↓] list  [space] toggle  [t] theme: {}  [a] alert  [q] quit",
             THEME_NAMES[app.theme_idx]
         ))
         .style(Style::new().fg(theme.palette().muted.color())),
@@ -291,21 +330,14 @@ fn render_title(f: &mut ratatui::Frame<'_>, theme: Theme, area: Rect, state: &mu
 }
 
 /// Render a labelled cell header (`▸ TITLE` in accent, padded with a muted
-/// `─` rule) and return the content area beneath it.
+/// `─` rule) and return the content area beneath.
 fn cell(f: &mut ratatui::Frame<'_>, theme: Theme, area: Rect, title: &str) -> Rect {
-    let p = theme.palette();
     let chunks = Layout::vertical([Constraint::Length(1), Constraint::Min(0)]).split(area);
-
-    let width = chunks[0].width as usize;
-    let label = format!("▸ {title} ");
-    let label_len = label.chars().count();
-    let dashes = if width > label_len { "─".repeat(width - label_len) } else { String::new() };
-
-    let header = Line::from(vec![
-        Span::styled(label, Style::new().fg(p.accent.color())),
-        Span::styled(dashes, Style::new().fg(p.muted.color())),
-    ]);
-    f.render_widget(Paragraph::new(header), chunks[0]);
+    // The header is a `▸ TITLE` accent label punched through a muted rule —
+    // exactly what `Divider` renders, so reuse it rather than hand-rolling
+    // `Span`s.
+    let label = format!("▸ {title}");
+    f.render_widget(Divider::new().label(label).theme(theme), chunks[0]);
     chunks[1]
 }
 
@@ -321,10 +353,101 @@ fn buttons_cell(f: &mut ratatui::Frame<'_>, theme: Theme, area: Rect, app: &mut 
     }
 }
 
+/// A single toggle; `space` flips `toggle_on`.
+fn toggle_cell(f: &mut ratatui::Frame<'_>, theme: Theme, area: Rect, app: &mut App) {
+    let inner = cell(f, theme, area, "TOGGLE");
+    let rows = Layout::vertical([Constraint::Min(1), Constraint::Min(1)]).split(inner);
+    f.render_widget(
+        Toggle::new("SHIELDS").on(app.toggle_on).theme(theme),
+        rows[0],
+    );
+    f.render_widget(
+        Toggle::new("CLOAK").on(!app.toggle_on).theme(theme),
+        rows[1],
+    );
+}
+
+/// Three telemetry readouts, each cycling a different `Level` so all four
+/// value colors are on screen.
+fn value_cell(f: &mut ratatui::Frame<'_>, theme: Theme, area: Rect, frame: u64) {
+    let inner = cell(f, theme, area, "VALUE");
+    let rows = Layout::vertical([Constraint::Min(1), Constraint::Min(1), Constraint::Min(1)])
+        .split(inner);
+
+    let t = frame as f64;
+    let hp = (82.0 + (t * 0.05).sin() * 6.0).round() as i32;
+    let fuel = (47.0 + (t * 0.03).sin() * 8.0).round() as i32;
+    let o2 = (21.0 + (t * 0.07).sin() * 8.0).round() as i32;
+
+    f.render_widget(Value::new(format!("{hp}%")).label("HULL").state(Level::Ok).theme(theme), rows[0]);
+    f.render_widget(
+        Value::new(format!("{fuel}%")).label("FUEL").state(Level::Warn).theme(theme),
+        rows[1],
+    );
+    f.render_widget(
+        Value::new(format!("{o2}%")).label("O2").state(Level::Alert).theme(theme),
+        rows[2],
+    );
+}
+
+/// A spinner + label, advancing every tick.
+fn spinner_cell(f: &mut ratatui::Frame<'_>, theme: Theme, area: Rect, app: &mut App) {
+    let inner = cell(f, theme, area, "SPINNER");
+    let rows = Layout::vertical([Constraint::Min(1), Constraint::Min(1)]).split(inner);
+    f.render_stateful_widget(Spinner::new().label("SYNC").theme(theme), rows[0], &mut app.spinner);
+    f.render_stateful_widget(Spinner::new().label("DECRYPT").theme(theme), rows[1], &mut app.spinner);
+}
+
+/// A single-line text input. Type to edit; the caret blinks each tick.
+fn input_cell(f: &mut ratatui::Frame<'_>, theme: Theme, area: Rect, app: &mut App) {
+    let inner = cell(f, theme, area, "TEXT INPUT");
+    f.render_stateful_widget(
+        TextInput::new().placeholder("enter callsign…").theme(theme),
+        inner,
+        &mut app.input,
+    );
+}
+
+/// A bare `Divider` with a label, so you can see the widget itself.
+fn divider_cell(f: &mut ratatui::Frame<'_>, theme: Theme, area: Rect) {
+    let inner = cell(f, theme, area, "DIVIDER");
+    let rows = Layout::vertical([Constraint::Min(1), Constraint::Min(1), Constraint::Min(1)])
+        .split(inner);
+    f.render_widget(Divider::new().theme(theme), rows[0]);
+    f.render_widget(Divider::new().label("SECTION A").theme(theme), rows[1]);
+    f.render_widget(Divider::new().theme(theme), rows[2]);
+}
+
+/// A `Panel` (titled double-bordered container) wrapping a couple of `Value`
+/// readouts — the basic-container use case.
+fn panel_cell(f: &mut ratatui::Frame<'_>, theme: Theme, area: Rect, frame: u64) {
+    let inner = cell(f, theme, area, "PANEL");
+    let panel = Panel::new().title("STATUS").theme(theme);
+    let content = panel.inner(inner);
+    f.render_widget(panel, inner);
+
+    let rows =
+        Layout::vertical([Constraint::Min(1), Constraint::Min(1)]).split(content);
+    let t = frame as f64;
+    let pwr = (0.6 + (t * 0.04).sin() * 0.3).clamp(0.0, 1.0);
+    let link = (40.0 + (t * 0.06).sin() * 30.0).round() as i32;
+    f.render_widget(
+        Value::new(format!("{:.0}%", pwr * 100.0))
+            .label("PWR")
+            .state(Level::Warn)
+            .theme(theme),
+        rows[0],
+    );
+    f.render_widget(
+        Value::new(format!("{link}%")).label("LINK").state(Level::Ok).theme(theme),
+        rows[1],
+    );
+}
+
 /// Three gauges held in distinct level bands so all three gauge colors
 /// (ok / warn / alert) are always on screen at once.
 fn gauges_cell(f: &mut ratatui::Frame<'_>, theme: Theme, area: Rect, frame: u64) {
-    let inner = cell(f, theme, area, "ENERGY GAUGES");
+    let inner = cell(f, theme, area, "ENERGY GAUGE");
     let rows = Layout::vertical([Constraint::Min(1), Constraint::Min(1), Constraint::Min(1)])
         .split(inner);
 

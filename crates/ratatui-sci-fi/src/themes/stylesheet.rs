@@ -29,6 +29,7 @@ const COMPONENT_CSS: &str = r#"
 
     Frame       { color: var(--muted); border: double; padding: 1; }
     Frame.main  { color: var(--accent); }
+    Frame.title { color: var(--accent); font-weight: bold; }
 
     Label       { color: var(--muted); }
     Value       { color: var(--fg); }
@@ -39,6 +40,12 @@ const COMPONENT_CSS: &str = r#"
     Button        { color: var(--accent); background: var(--bg); }
     Button.focus  { color: var(--bg); background: var(--accent); font-weight: bold; }
 
+    /* Toggle — boolean control mirroring Button's two-state shape. Off reads as
+       a quiet muted idle; on escalates to ok + bold. */
+    Toggle        { color: var(--muted); }
+    Toggle.on     { color: var(--ok); font-weight: bold; }
+    Toggle.off    { color: var(--muted); }
+
     Bar         { color: var(--accent); }
     Bar.warn    { color: var(--warn); }
     Bar.alert   { color: var(--alert); }
@@ -46,6 +53,11 @@ const COMPONENT_CSS: &str = r#"
     Scanline    { color: var(--muted); }
     Cursor      { color: var(--accent); }
     Alert       { color: var(--alert); border: double; }
+
+    /* Text input — value text is fg; empty placeholder dims to muted; the
+       caret reuses the `Cursor` rule above (accent). */
+    Input             { color: var(--fg); }
+    Input.placeholder { color: var(--muted); }
 
     /* Energy gauge — segmented energy bar (`Bar` above is the legacy alias).
        The base node supplies the gap-cell background; level/empty/label

@@ -16,7 +16,12 @@ categories = ["command-line-interface"]
 ratatui = "0.30.1"
 ratatui-style = "0.2.0"
 crossterm = "0.29.0"
-rodio = { version = "0.22", default-features = false }
+# rodio 0.22: `default-features = false` drops rodio's bundled audio decoders
+# (we synthesize raw f32 samples, so we never decode files). We then re-enable
+# `playback` only — that pulls in `cpal` and exposes the device-sink + mixer +
+# player API (`DeviceSinkBuilder`/`MixerDeviceSink`/`Player`), without any of
+# the symphonia codec crates.
+rodio = { version = "0.22", default-features = false, features = ["playback"] }
 
 [profile.release]
 lto = true

@@ -13,10 +13,10 @@
 
 ## ✨ 特性
 
-- **四大内置主题** —— Cyberpunk / Fallout / Weyland / DeepSpace,语义化调色板(`accent`/`bg`/`alert`/…),每个主题同时提供原生 `Color` 与基于 `ratatui-style` 的 CSS cascade 样式表。
-- **10 个组件** —— 5 个风格统一的基础组件 + 5 个高感官的特效组件,全部按 ratatui 0.30 的 `Widget` / `StatefulWidget` 标准实现。
+- **八大内置主题** —— Cyberpunk / Fallout / Weyland / DeepSpace / Bloodmoon / Nebula / Arctic / Sentinel,语义化调色板(`accent`/`bg`/`alert`/…),每个主题同时提供原生 `Color` 与基于 `ratatui-style` 的 CSS cascade 样式表。
+- **16 个组件** —— 11 个风格统一的基础组件 + 5 个高感官的特效组件,全部按 ratatui 0.30 的 `Widget` / `StatefulWidget` 标准实现。
 - **运行时合成音效** —— 零音频资产、零版权负担,6 个音效由纯 Rust 波形合成;`rodio` 后端,无设备时静默降级。
-- **后端无关** —— 库本身不强依赖任何终端后端(示例用 `crossterm`)。
+- **后端无关渲染** —— 库通过 ratatui 的离屏 `Buffer` 渲染,不做任何终端 I/O;`crossterm` 作为正式依赖仅为 `TextInputState::handle_key` 提供按键事件类型(下游用 termion/termwiz 时可改用自己的事件循环)。
 - **可测试** —— 所有组件都带离屏 `Buffer` 渲染单测,无需真实终端。
 
 ---
@@ -35,7 +35,7 @@ cargo run -p ratatui-sci-fi --example matrix_rain    # 全屏数字雨
 
 ![dashboard 示例](screenshot/dashboard.gif)
 
-**`widget_gallery`** —— 10 个组件各自独立展示。
+**`widget_gallery`** —— 16 个组件各自独立展示(5×3 网格)。
 
 ![widget gallery 示例](screenshot/widget_gallery.gif)
 
@@ -156,6 +156,12 @@ fn ui(f: &mut Frame, state: &mut SciFiRadarState) {
 | `ScanList` | 扫描线分隔的列表,选中行高亮 + 闪烁光标(`█`) |
 | `AlertPopup` | 双线警报红边框弹窗,弹出时短暂闪烁 |
 | `TargetLock` | 四角断开括号 + 中心十字准星的 HUD 容器,带 `inner(area)` |
+| `Panel` | 双线带标题的科幻容器窗框,CSS cascade 驱动,带 `inner(area)` |
+| `Value` | 标签 + 带状态级别的读数(`.state(Level::Ok/Warn/Alert)` 变色) |
+| `Divider` | 满宽分隔规则线,可选居中标签 `──── SEC ────` |
+| `Spinner` | Braille 活动指示器 `⠋⠙⠹…`,每 tick 推进一格 |
+| `Toggle` | 布尔开关 `[◉ SHIELDS · ENGAGED ]` / `[ ○ SHIELDS · STANDBY ]` |
+| `TextInput` | 单行输入框,闪烁光标 + `handle_key(KeyEvent)` + 占位符,光标按 char 索引 |
 
 ### 特效组件
 | 组件 | 说明 |
@@ -214,7 +220,7 @@ ratatui-sci-fi/                  # Cargo workspace
     ├── src/
     │   ├── lib.rs               # 约定 + `pub use widgets::*` 根级再导出
     │   ├── themes/              # Palette / Theme / ratatui-style Stylesheet
-    │   ├── widgets/             # 10 个组件
+    │   ├── widgets/             # 16 个组件
     │   └── audio/               # 目录(Sound/CATALOG)+ synth + AudioSystem
     └── examples/
         ├── dashboard.rs         # 综合科幻仪表盘(全组件 + 音效)
@@ -222,7 +228,7 @@ ratatui-sci-fi/                  # Cargo workspace
 ```
 
 - **双路径主题**:直接用 `palette()` 取 `Color`(适于 Canvas 直绘),或用 `stylesheet()` 走 CSS cascade(适于声明式样式)。同源 RGB,不漂移。
-- **后端无关**:库只依赖 `ratatui` + `ratatui-style`;`crossterm` 仅作 dev-dependency 供示例使用。
+- **后端无关渲染**:库通过 ratatui 离屏 `Buffer` 渲染,不做终端 I/O。依赖 `ratatui` + `ratatui-style`,外加 `crossterm`(仅为 `TextInputState::handle_key` 提供按键事件类型;示例用其做终端 I/O)。
 
 ---
 

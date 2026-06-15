@@ -21,6 +21,11 @@ audio = ["dep:rodio"]
 [dependencies]
 ratatui.workspace = true
 ratatui-style.workspace = true
+# Input-event types for `TextInputState::handle_key`. ratatui's default features
+# already pull crossterm in transitively, but declaring it directly keeps the
+# `KeyEvent` type stable and intentional. The library itself does no terminal
+# I/O — it only consumes the event type the app's chosen backend produces.
+crossterm.workspace = true
 # Optional audio backend. `default-features = false` drops rodio's bundled
 # decoders (we synthesize raw f32 samples, so we never decode files).
 rodio = { workspace = true, optional = true }

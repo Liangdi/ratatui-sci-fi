@@ -28,8 +28,8 @@ use ratatui::{
 };
 use ratatui_sci_fi::{
     AlertPopup, AlertPopupState, BiometricChart, BiometricChartState, Blip, BootSequence,
-    BootSequenceState, EnergyGauge, GlitchText, GlitchTextState, ScanList, ScanListState,
-    SciFiRadar, SciFiRadarState, TargetLock, Theme,
+    BootSequenceState, Divider, EnergyGauge, GlitchText, GlitchTextState, Level, Panel, ScanList,
+    ScanListState, SciFiRadar, SciFiRadarState, Theme, Value,
 };
 use ratatui_sci_fi::audio::Sound;
 
@@ -263,14 +263,18 @@ pub fn draw(f: &mut ratatui::Frame<'_>, app: &mut App) {
         &mut app.radar,
     );
 
-    let right = Layout::vertical([Constraint::Length(10), Constraint::Min(1)]).split(body[2]);
+    let right =
+        Layout::vertical([Constraint::Length(10), Constraint::Length(1), Constraint::Min(1)])
+            .split(body[2]);
     f.render_stateful_widget(
         BiometricChart::new(3).window(60).theme(theme),
         right[0],
         &mut app.bio,
     );
+    // A `Divider` rule with a centered label separates the vitits from the log.
+    f.render_widget(Divider::new().label("EVENT LOG").theme(theme), right[1]);
     let log = ScanList::new(LOG_ITEMS.iter().copied()).theme(theme);
-    f.render_stateful_widget(log, right[1], &mut app.log);
+    f.render_stateful_widget(log, right[2], &mut app.log);
 
     // Footer: hints.
     f.render_widget(
@@ -306,11 +310,15 @@ fn centered_rect(percent_x: u16, height: u16, area: Rect) -> Rect {
     .split(vert[1])[1]
 }
 
-/// Left panel: a `TargetLock` HUD frame wrapping four oscillating `EnergyGauge`s.
+/// Left panel: a `Panel` HUD frame wrapping four oscillating `EnergyGauge`s,
+/// each preceded by a status `Value` readout. The `Panel` replaces the old
+/// `TargetLock` wrapper here (TargetLock is still in the gallery for its
+/// crosshair look); `Value` adds a labeled level-colored readout above each
+/// gauge so a glance conveys both the trend and the status.
 fn telemetry_panel(f: &mut ratatui::Frame<'_>, theme: Theme, area: ratatui::layout::Rect, tick: u64) {
-    let lock = TargetLock::new().title("TELEMETRY").theme(theme);
-    let inner = lock.inner(area);
-    f.render_widget(lock, area);
+    let panel = Panel::new().title("TELEMETRY").theme(theme);
+    let inner = panel.inner(area);
+    f.render_widget(panel, area);
 
     let gauges: [(&str, f64); 4] = [
         ("CORE", 0.07),
@@ -318,20 +326,35 @@ fn telemetry_panel(f: &mut ratatui::Frame<'_>, theme: Theme, area: ratatui::layo
         ("HULL", 0.03),
         ("SHLD", 0.09),
     ];
-    let rows = Layout::vertical([
-        Constraint::Min(1),
-        Constraint::Min(1),
-        Constraint::Min(1),
-        Constraint::Min(1),
-    ])
-    .split(inner);
+    // Each gauge gets a 1-row label + 1-row bar slot.
+    let mut constraints = Vec::with_capacity(gauges.len() * 2);
+    for _ in &gauges {
+        constraints.push(Constraint::Length(1));
+        constraints.push(Constraint::Length(1));
+    }
+    let rows = Layout::vertical(&constraints).split(inner);
 
     let t = tick as f64;
     for (i, (label, freq)) in gauges.iter().enumerate() {
         // Oscillate in ~0.25..0.95 so all three gauge colors get exercised.
         let ratio = 0.60 + (t * freq).sin() * 0.30;
-        let gauge = EnergyGauge::new(ratio).label(*label).segments(16).theme(theme);
-        f.render_widget(gauge, rows[i]);
+        let pct = (ratio * 100.0).round() as i32;
+        // Match the gauge's own level thresholds (≥0.6 ok, ≥0.3 warn, else alert).
+        let level = if ratio >= 0.6 {
+            Level::Ok
+        } else if ratio >= 0.3 {
+            Level::Warn
+        } else {
+            Level::Alert
+        };
+        f.render_widget(
+            Value::new(format!("{pct}%")).label(*label).state(level).theme(theme),
+            rows[i * 2],
+        );
+        f.render_widget(
+            EnergyGauge::new(ratio).label(*label).segments(16).theme(theme),
+            rows[i * 2 + 1],
+        );
     }
 }
 

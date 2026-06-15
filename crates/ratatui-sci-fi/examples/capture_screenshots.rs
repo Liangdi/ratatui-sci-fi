@@ -480,7 +480,7 @@ fn main() -> std::io::Result<()> {
         run_scene(
             "widget_gallery",
             110,
-            34,
+            40,
             75,
             100,
             fps,
