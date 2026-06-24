@@ -14,7 +14,7 @@
 ## ✨ 特性
 
 - **八大内置主题** —— Cyberpunk / Fallout / Weyland / DeepSpace / Bloodmoon / Nebula / Arctic / Sentinel,语义化调色板(`accent`/`bg`/`alert`/…),每个主题同时提供原生 `Color` 与基于 `ratatui-style` 的 CSS cascade 样式表。
-- **32 个组件** —— 11 个风格统一的基础组件 + 5 个高感官特效组件 + 16 个数据图表组件(0.2.0 新增),全部按 ratatui 0.30 的 `Widget` / `StatefulWidget` 标准实现。
+- **47 个组件** —— 20 个基础 / 表单 / 指示组件 + 8 个高感官特效组件 + 19 个数据图表组件,全部按 ratatui 0.30 的 `Widget` / `StatefulWidget` 标准实现。
 - **运行时合成音效** —— 零音频资产、零版权负担,6 个音效由纯 Rust 波形合成;`rodio` 后端,无设备时静默降级。
 - **Markdown 对话流** —— `CommLog` 的 chat 样式把每条消息渲染成**带框卡片**(user/agent 靠右/靠左区分),正文走 [pulldown-cmark](https://crates.io/crates/pulldown-cmark) 的 CommonMark 渲染(标题 / 粗斜体 / `行内代码` / 代码块 / 列表 / 引用 / 分隔线),逐字流式出现 + 可滚动 + 滚动条,默认开启的 `markdown` feature。
 - **后端无关渲染** —— 库通过 ratatui 的离屏 `Buffer` 渲染,不做任何终端 I/O;`crossterm` 作为正式依赖仅为 `TextInputState::handle_key` 提供按键事件类型(下游用 termion/termwiz 时可改用自己的事件循环)。
@@ -289,12 +289,16 @@ ratatui-sci-fi/                  # 单 crate(库)
 ├── src/
 │   ├── lib.rs                   # 约定 + `pub use widgets::*` 根级再导出
 │   ├── themes/                  # Palette / Theme / ratatui-style Stylesheet
-│   ├── widgets/                 # 32 个组件(基础 / 特效 / 数据图表)
+│   ├── widgets/                 # 47 个组件(基础 / 表单 / 指示 / 特效 / 数据图表)
 │   └── audio/                   # 目录(Sound/CATALOG)+ synth + AudioSystem
 └── examples/
-    ├── agent_console.rs         # AI Agent 控制台(开机→登录→对话流)
     ├── dashboard.rs             # 综合科幻仪表盘(全组件 + 音效)
-    └── matrix_rain.rs           # 数字雨独立演示
+    ├── widget_gallery.rs        # 全组件网格总览
+    ├── form_controls.rs         # 表单控件(交互演示)
+    ├── hud_effects.rs           # HUD 效果(打字机 / 跑马灯 / 数码时钟)
+    ├── indicators.rs            # 指示器 / 容器
+    ├── data_viz.rs              # 数据可视化(示波器 / 星图 / 拓扑)
+    └── …                        # 其他:agent_console / matrix_rain / button / charts / capture_screenshots
 ```
 
 - **双路径主题**:直接用 `palette()` 取 `Color`(适于 Canvas 直绘),或用 `stylesheet()` 走 CSS cascade(适于声明式样式)。同源 RGB,不漂移。
@@ -304,7 +308,7 @@ ratatui-sci-fi/                  # 单 crate(库)
 
 ## 🗺️ 路线图
 
-- [x] 八大主题 + 32 个组件(基础 / 特效 / 数据图表)
+- [x] 八大主题 + 47 个组件(基础 / 表单 / 指示 / 特效 / 数据图表)
 - [x] 运行时合成音效引擎(`audio` feature)
 - [ ] 更多音色参数化(频率/时长可调)
 - [x] 命名捕获的 demo 动图 / 截图(`screenshot/` + `capture_screenshots` 无头渲染示例,需 ffmpeg)

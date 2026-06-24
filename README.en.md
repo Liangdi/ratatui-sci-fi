@@ -14,7 +14,7 @@ English | **[中文](README.md)**
 ## ✨ Features
 
 - **Eight built-in themes** — Cyberpunk / Fallout / Weyland / DeepSpace / Bloodmoon / Nebula / Arctic / Sentinel, with a semantic palette (`accent` / `bg` / `alert` / …). Each theme exposes both native ratatui `Color`s and a `ratatui-style` CSS-cascade stylesheet.
-- **32 widgets** — 11 basic widgets + 5 high-sensory effect widgets + 16 data-chart widgets (new in 0.2.0), all implemented against the ratatui 0.30 `Widget` / `StatefulWidget` model.
+- **47 widgets** — 20 basic / form / indicator widgets + 8 high-sensory effect widgets + 19 data-chart widgets, all implemented against the ratatui 0.30 `Widget` / `StatefulWidget` model.
 - **Runtime-synthesized audio** — no audio assets, no licensing burden. Six sound effects are synthesized from pure-Rust waveforms; the `rodio`-backed `AudioSystem` plays them and degrades silently when no device is present.
 - **Markdown chat streams** — `CommLog`'s chat style renders each message as a **bordered card** (user/agent left/right), bodies go through [pulldown-cmark](https://crates.io/crates/pulldown-cmark) CommonMark rendering, with a streaming typewriter reveal + scrollbar; the `markdown` feature is on by default.
 - **Backend-agnostic rendering** — the library renders via ratatui's offscreen `Buffer` and does no terminal I/O; `crossterm` is a dependency only for the `TextInputState::handle_key` event type (apps using termion/termwiz can supply their own event loop).
@@ -272,11 +272,16 @@ ratatui-sci-fi/                  # single crate (library)
 ├── src/
 │   ├── lib.rs                   # conventions + `pub use widgets::*` re-exports
 │   ├── themes/                  # Palette / Theme / ratatui-style Stylesheet
-│   ├── widgets/                 # 32 widgets (basic / effect / chart)
+│   ├── widgets/                 # 47 widgets (basic / form / indicator / effect / chart)
 │   └── audio/                   # catalog (Sound/CATALOG) + synth + AudioSystem
 └── examples/
     ├── dashboard.rs             # composite sci-fi dashboard (all widgets + audio)
-    └── matrix_rain.rs           # standalone Matrix rain demo
+    ├── widget_gallery.rs        # every widget in a grid
+    ├── form_controls.rs         # interactive form controls
+    ├── hud_effects.rs           # HUD effects (typewriter / marquee / clock)
+    ├── indicators.rs            # indicators / containers
+    ├── data_viz.rs              # data viz (oscilloscope / star map / graph)
+    └── …                        # others: agent_console / matrix_rain / button / charts / capture_screenshots
 ```
 
 - **Two theming paths**: use `palette()` for raw `Color`s (good for direct `Canvas` drawing), or `stylesheet()` for CSS-cascade styling (good for declarative styles). Same RGB source, no drift.
@@ -286,7 +291,7 @@ ratatui-sci-fi/                  # single crate (library)
 
 ## 🗺️ Roadmap
 
-- [x] Eight themes + 32 widgets (basic / effect / data-chart)
+- [x] Eight themes + 47 widgets (basic / form / indicator / effect / data-chart)
 - [x] Runtime-synthesized audio engine (`audio` feature)
 - [ ] Parameterize sound character (tunable frequency/duration)
 - [x] Named demo GIFs / screenshots (`screenshot/` + the headless `capture_screenshots` example; needs ffmpeg)
