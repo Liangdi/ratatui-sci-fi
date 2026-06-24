@@ -170,7 +170,7 @@ impl StatefulWidget for Spinner {
                 if x >= right {
                     break;
                 }
-                buf[(x, y)].set_symbol(ch.to_string().as_str()).set_style(label_style);
+                buf[(x, y)].set_char(ch).set_style(label_style);
                 x += 1;
             }
             if x < right {
@@ -185,7 +185,7 @@ impl StatefulWidget for Spinner {
         if x < right {
             let glyphs = self.shape.glyphs();
             let glyph = glyphs[(state.tick as usize) % glyphs.len()];
-            buf[(x, y)].set_symbol(glyph.to_string().as_str()).set_style(glyph_style);
+            buf[(x, y)].set_char(glyph).set_style(glyph_style);
         }
     }
 }

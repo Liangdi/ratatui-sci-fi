@@ -107,7 +107,7 @@ impl Widget for Markdown {
                     if x >= right {
                         break;
                     }
-                    buf[(x, y)].set_symbol(ch.to_string().as_str()).set_style(span.style);
+                    buf[(x, y)].set_char(ch).set_style(span.style);
                     x += 1;
                 }
             }

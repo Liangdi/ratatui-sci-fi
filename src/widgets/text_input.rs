@@ -286,7 +286,7 @@ impl StatefulWidget for TextInput {
                     if x >= right {
                         break;
                     }
-                    buf[(x, y)].set_symbol(ch.to_string().as_str()).set_style(placeholder_style);
+                    buf[(x, y)].set_char(ch).set_style(placeholder_style);
                     x += 1;
                 }
             }
@@ -322,9 +322,9 @@ impl StatefulWidget for TextInput {
             if caret_cell_is_char && i == state.cursor {
                 // Caret sits on this char: highlight it bright (caret color),
                 // keeping the glyph itself visible.
-                buf[(px, y)].set_symbol(glyph.to_string().as_str()).set_style(caret_style);
+                buf[(px, y)].set_char(glyph).set_style(caret_style);
             } else {
-                buf[(px, y)].set_symbol(glyph.to_string().as_str()).set_style(value_style);
+                buf[(px, y)].set_char(glyph).set_style(value_style);
             }
         }
 

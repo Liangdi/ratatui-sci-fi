@@ -355,7 +355,7 @@ impl StatefulWidget for HBarChart {
                     break;
                 }
                 let glyph = label_chars.get(col as usize).copied().unwrap_or(' ');
-                buf[(x, y)].set_symbol(glyph.to_string().as_str()).set_style(label_style);
+                buf[(x, y)].set_char(glyph).set_style(label_style);
                 x += 1;
             }
 

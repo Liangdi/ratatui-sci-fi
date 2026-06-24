@@ -523,7 +523,7 @@ impl StatefulWidget for TreeMap {
                         // Keep the cell color as bg; set the label char's fg to
                         // the label color for readability.
                         buf[(px, r.y)]
-                            .set_symbol(ch.to_string().as_str())
+                            .set_char(*ch)
                             .set_fg(label_color)
                             .set_bg(color);
                     }

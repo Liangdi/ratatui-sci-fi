@@ -188,7 +188,12 @@ impl EnergyGauge {
     fn bar_color(&self) -> Color {
         let sheet = self.theme.stylesheet();
         let cls = self.level_class();
-        sheet.compute(&NodeRef::new("Gauge").classes(&[cls]), None).to_style().fg.unwrap()
+        let mut scratch = ComputeScratch::new();
+        sheet
+            .compute_with(&NodeRef::new("Gauge").classes(&[cls]), None, &mut scratch)
+            .to_style()
+            .fg
+            .unwrap()
     }
 }
 
@@ -218,7 +223,7 @@ impl Widget for EnergyGauge {
             if x + label_cell_count <= right {
                 for ch in label.chars() {
                     buf[(x, y)]
-                        .set_symbol(ch.to_string().as_str())
+                        .set_char(ch)
                         .set_style(label_style);
                     x += 1;
                 }
@@ -255,7 +260,7 @@ impl Widget for EnergyGauge {
                 if px >= right {
                     break;
                 }
-                buf[(px, y)].set_symbol(ch.to_string().as_str()).set_style(bar_style);
+                buf[(px, y)].set_char(ch).set_style(bar_style);
             }
         }
     }

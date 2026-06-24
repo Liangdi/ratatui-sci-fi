@@ -141,7 +141,12 @@ impl Panel {
     #[cfg(test)]
     fn border_fg(&self) -> ratatui::style::Color {
         let sheet = self.theme.stylesheet();
-        sheet.compute(&NodeRef::new("Frame"), None).to_style().fg.unwrap()
+        let mut scratch = ComputeScratch::new();
+        sheet
+            .compute_with(&NodeRef::new("Frame"), None, &mut scratch)
+            .to_style()
+            .fg
+            .unwrap()
     }
 
     /// Resolve the `Frame` cascade into an owned [`ComputedStyle`] (plus the

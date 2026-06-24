@@ -15,7 +15,7 @@
 //!   app's event loop, not animation state.
 //! - Styling goes through the theme's [`Stylesheet`](ratatui_style::Stylesheet)
 //!   cascade: the button queries the `Button` node (plus a `.focus` class when
-//!   focused) via `compute`, so colors come from the `Button` / `Button.focus`
+//!   focused) through the cascade, so colors come from the `Button` / `Button.focus`
 //!   CSS rules rather than `palette()` directly. Because those rules are
 //!   `var(--…)`-driven off the same palette, the resolved colors are identical
 //!   to reading `palette()` — and `Button.focus` additionally applies
@@ -24,7 +24,7 @@
 //!   vertical middle row. All glyphs are width-1.
 
 use ratatui::{buffer::Buffer, layout::Rect, style::Style, widgets::Widget};
-use ratatui_style::NodeRef;
+use ratatui_style::{ComputeScratch, NodeRef};
 
 use crate::Theme;
 
@@ -210,12 +210,16 @@ impl Widget for Button {
         // off the same palette, so the resolved colors match reading
         // `palette()` directly.
         let sheet = self.theme.stylesheet();
+        // One reused `ComputeScratch` for both branches (crate convention #2):
+        // `compute()` would allocate a fresh scratch per call, but `compute_with`
+        // borrows ours — and render runs every frame.
+        let mut scratch = ComputeScratch::new();
         let computed = if self.focused {
             sheet
-                .compute(&NodeRef::new("Button").classes(&["focus"]), None)
+                .compute_with(&NodeRef::new("Button").classes(&["focus"]), None, &mut scratch)
                 .to_style()
         } else {
-            sheet.compute(&NodeRef::new("Button"), None).to_style()
+            sheet.compute_with(&NodeRef::new("Button"), None, &mut scratch).to_style()
         };
 
         // Whole-button background + base style from the cascade. Focused text

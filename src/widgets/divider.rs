@@ -167,7 +167,7 @@ impl Widget for Divider {
                     if lx >= right {
                         break;
                     }
-                    buf[(lx, y)].set_symbol(ch.to_string().as_str()).set_style(label_style);
+                    buf[(lx, y)].set_char(ch).set_style(label_style);
                     lx += 1;
                 }
 

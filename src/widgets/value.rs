@@ -119,7 +119,7 @@ impl Widget for Value {
                 if x >= right {
                     break;
                 }
-                buf[(x, y)].set_symbol(ch.to_string().as_str()).set_style(label_style);
+                buf[(x, y)].set_char(ch).set_style(label_style);
                 x += 1;
             }
             // One-cell gap after the label so label and value don't run together.
@@ -134,7 +134,7 @@ impl Widget for Value {
             if x >= right {
                 break;
             }
-            buf[(x, y)].set_symbol(ch.to_string().as_str()).set_style(value_style);
+            buf[(x, y)].set_char(ch).set_style(value_style);
             x += 1;
         }
     }
