@@ -14,6 +14,8 @@
 - *(examples)* Add overlay example showcasing the ambient overlay layer
 - *(widgets)* Add BigText / Stat / KeyValue / Timeline / Table information-display widgets
 - *(examples)* Add info_display example showcasing the 5 information widgets
+- *(widgets)* Add SignalBars / BatteryIndicator / Thermometer indicator widgets
+- *(examples)* Extend indicators example with the 3 new indicators
 
 ## [0.2.0] - 2026-06-15
 

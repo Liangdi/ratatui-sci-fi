@@ -32,8 +32,9 @@ use ratatui::{
     Terminal,
 };
 use ratatui_sci_fi::{
-    CollapsiblePanel, CollapsiblePanelState, CountdownTimer, CountdownTimerState, Level,
-    ProgressBar, ProgressBarState, StatusLED, Theme,
+    BatteryIndicator, CollapsiblePanel, CollapsiblePanelState, CountdownTimer,
+    CountdownTimerState, Level, ProgressBar, ProgressBarState, SignalBars, StatusLED,
+    Thermometer, Theme,
 };
 
 type Term = Terminal<CrosstermBackend<Stdout>>;
@@ -124,17 +125,33 @@ pub fn draw(f: &mut ratatui::Frame<'_>, app: &mut App) {
     render_title(f, theme, outer[0]);
 
     let body = Layout::vertical([
-        Constraint::Length(3), // status LEDs
-        Constraint::Length(3), // countdown
-        Constraint::Length(5), // progress bars (determinate + indeterminate)
+        Constraint::Min(1),    // two-column gauges
         Constraint::Length(7), // collapsible panel
     ])
     .split(outer[1]);
 
-    status_cell(f, theme, body[0]);
-    countdown_cell(f, theme, body[1], app);
-    progress_cell(f, theme, body[2], app);
-    panel_cell(f, theme, body[3], app);
+    let cols = Layout::horizontal([Constraint::Min(1), Constraint::Min(1)]).split(body[0]);
+    let left = Layout::vertical([
+        Constraint::Length(3), // status LEDs
+        Constraint::Length(3), // countdown
+        Constraint::Length(3), // progress
+        Constraint::Length(3), // signal
+    ])
+    .split(cols[0]);
+    let right = Layout::vertical([
+        Constraint::Length(3), // battery
+        Constraint::Min(1),    // thermometer
+    ])
+    .split(cols[1]);
+
+    status_cell(f, theme, left[0]);
+    countdown_cell(f, theme, left[1], app);
+    progress_cell(f, theme, left[2], app);
+    signal_cell(f, theme, left[3], app);
+    battery_cell(f, theme, right[0], app);
+    thermometer_cell(f, theme, right[1], app);
+
+    panel_cell(f, theme, body[1], app);
 
     render_footer(f, theme, outer[2]);
 }
@@ -182,16 +199,31 @@ fn countdown_cell(f: &mut ratatui::Frame<'_>, theme: Theme, area: Rect, app: &mu
 
 fn progress_cell(f: &mut ratatui::Frame<'_>, theme: Theme, area: Rect, app: &mut App) {
     let inner = labeled_cell(f, theme, area, "PROGRESS");
-    let rows = Layout::vertical([Constraint::Min(1), Constraint::Min(1)]).split(inner);
     // Determinate: a ratio that cycles 0..1.
     let ratio = (app.frame % 100) as f32 / 100.0;
     f.render_stateful_widget(
         ProgressBar::new(Some(ratio)).theme(theme),
-        rows[0],
-        &mut ProgressBarState::new(),
+        inner,
+        &mut app.progress,
     );
-    // Indeterminate: a scanning block.
-    f.render_stateful_widget(ProgressBar::new(None).theme(theme), rows[1], &mut app.progress);
+}
+
+fn signal_cell(f: &mut ratatui::Frame<'_>, theme: Theme, area: Rect, app: &mut App) {
+    let inner = labeled_cell(f, theme, area, "SIGNAL");
+    let level = ((app.frame / 8) % 6) as u8;
+    f.render_widget(SignalBars::new(level).bars(5).theme(theme), inner);
+}
+
+fn battery_cell(f: &mut ratatui::Frame<'_>, theme: Theme, area: Rect, app: &mut App) {
+    let inner = labeled_cell(f, theme, area, "BATTERY");
+    let ratio = 0.2 + 0.7 * ((app.frame as f32 * 0.02).sin() * 0.5 + 0.5);
+    f.render_widget(BatteryIndicator::new(ratio).theme(theme), inner);
+}
+
+fn thermometer_cell(f: &mut ratatui::Frame<'_>, theme: Theme, area: Rect, app: &mut App) {
+    let inner = labeled_cell(f, theme, area, "CORE TEMP");
+    let ratio = 0.3 + 0.5 * ((app.frame as f32 * 0.015).sin() * 0.5 + 0.5);
+    f.render_widget(Thermometer::new(ratio).theme(theme), inner);
 }
 
 fn panel_cell(f: &mut ratatui::Frame<'_>, theme: Theme, area: Rect, app: &mut App) {
