@@ -14,7 +14,7 @@ English | **[中文](README.md)**
 ## ✨ Features
 
 - **Eight built-in themes** — Cyberpunk / Fallout / Weyland / DeepSpace / Bloodmoon / Nebula / Arctic / Sentinel, with a semantic palette (`accent` / `bg` / `alert` / …). Each theme exposes both native ratatui `Color`s and a `ratatui-style` CSS-cascade stylesheet.
-- **62 widgets** — 33 basic / form / indicator / info / nav widgets + 10 high-sensory effect widgets + 19 data-chart widgets, all implemented against the ratatui 0.30 `Widget` / `StatefulWidget` model.
+- **65 widgets** — 36 basic / form / indicator / info / nav / feedback widgets + 10 high-sensory effect widgets + 19 data-chart widgets, all implemented against the ratatui 0.30 `Widget` / `StatefulWidget` model.
 - **Runtime-synthesized audio** — no audio assets, no licensing burden. Six sound effects are synthesized from pure-Rust waveforms; the `rodio`-backed `AudioSystem` plays them and degrades silently when no device is present.
 - **Markdown chat streams** — `CommLog`'s chat style renders each message as a **bordered card** (user/agent left/right), bodies go through [pulldown-cmark](https://crates.io/crates/pulldown-cmark) CommonMark rendering, with a streaming typewriter reveal + scrollbar; the `markdown` feature is on by default.
 - **Backend-agnostic rendering** — the library renders via ratatui's offscreen `Buffer` and does no terminal I/O; `crossterm` is a dependency only for the `TextInputState::handle_key` event type (apps using termion/termwiz can supply their own event loop).
@@ -202,6 +202,9 @@ Accessing a theme: `Theme::Cyberpunk.palette()` returns native `Color`s; `Theme:
 | `Breadcrumb` | Navigation path `item > item > current`; last segment accent, swappable separator (> / / ►) |
 | `Tabs` | Tab bar; selected is accent + bold, with form (Underline / Bracket / Arrow) |
 | `ScrollView` | Vertical scroll region + scrollbar; Up / Down / PageUp / Down / Home / End |
+| `Badge` | Status chip; Filled (level as bg) / Outlined ([ text ] in level color) |
+| `Tooltip` | Hover hint [ text ]; Pointer adds a ▼ beneath |
+| `Toast` | Auto-dismissing notification; show/tick countdown, centered overlay + level-colored border |
 
 ### Effects
 | Widget | Description |
@@ -287,7 +290,7 @@ ratatui-sci-fi/                  # single crate (library)
 ├── src/
 │   ├── lib.rs                   # conventions + `pub use widgets::*` re-exports
 │   ├── themes/                  # Palette / Theme / ratatui-style Stylesheet
-│   ├── widgets/                 # 62 widgets (basic / form / indicator / info / nav / effect / chart)
+│   ├── widgets/                 # 65 widgets (basic / form / indicator / info / nav / feedback / effect / chart)
 │   └── audio/                   # catalog (Sound/CATALOG) + synth + AudioSystem
 └── examples/
     ├── dashboard.rs             # composite sci-fi dashboard (all widgets + audio)
@@ -306,7 +309,7 @@ ratatui-sci-fi/                  # single crate (library)
 
 ## 🗺️ Roadmap
 
-- [x] Eight themes + 62 widgets (basic / form / indicator / info / nav / effect / data-chart)
+- [x] Eight themes + 65 widgets (basic / form / indicator / info / nav / feedback / effect / data-chart)
 - [x] Runtime-synthesized audio engine (`audio` feature)
 - [ ] Parameterize sound character (tunable frequency/duration)
 - [x] Named demo GIFs / screenshots (`screenshot/` + the headless `capture_screenshots` example; needs ffmpeg)

@@ -68,6 +68,9 @@ mod inputs;
 #[path = "navigation.rs"]
 mod navigation;
 #[allow(dead_code, unused_imports)]
+#[path = "feedback.rs"]
+mod feedback;
+#[allow(dead_code, unused_imports)]
 #[path = "agent_console.rs"]
 mod agent_console;
 
@@ -85,6 +88,7 @@ use overlay as scene_overlay;
 use info_display as scene_info_display;
 use inputs as scene_inputs;
 use navigation as scene_navigation;
+use feedback as scene_feedback;
 
 /// Pixel geometry shared across every frame. `cell_w`/`cell_h` are derived from
 /// the font's own metrics so box-drawing glyphs tile seamlessly.
@@ -694,6 +698,26 @@ fn main() -> std::io::Result<()> {
             scene_navigation::App::tick,
             scene_navigation::App::cycle_theme,
             |a: &scene_navigation::App| a.theme(),
+        )?;
+    }
+
+    // Feedback: badge + tooltip + toast.
+    if selected("feedback") {
+        run_scene(
+            "feedback",
+            70,
+            16,
+            15,
+            90,
+            fps,
+            40,
+            metrics,
+            &fonts,
+            scene_feedback::App::new,
+            scene_feedback::draw,
+            scene_feedback::App::tick,
+            scene_feedback::App::cycle_theme,
+            |a: &scene_feedback::App| a.theme(),
         )?;
     }
 

@@ -10,6 +10,7 @@
 
 pub mod activity_rings;
 pub mod area_chart;
+pub mod badge;
 pub mod battery_indicator;
 pub mod big_text;
 pub mod biometric_chart;
@@ -69,7 +70,9 @@ pub mod text_area;
 pub mod text_input;
 pub mod thermometer;
 pub mod timeline;
+pub mod toast;
 pub mod toggle;
+pub mod tooltip;
 pub mod tree_map;
 pub mod typewriter;
 pub mod util;
@@ -77,6 +80,7 @@ pub mod value;
 
 pub use activity_rings::{ActivityRings, ActivityRingsState, RingShape};
 pub use area_chart::{AreaChart, AreaChartState, AreaShape};
+pub use badge::{Badge, BadgeShape};
 pub use battery_indicator::{BatteryIndicator, BatteryShape};
 pub use big_text::{BigText, BigTextShape};
 pub use biometric_chart::{BiometricChart, BiometricChartState};
@@ -136,7 +140,9 @@ pub use text_area::{TextArea, TextAreaShape, TextAreaState};
 pub use text_input::{TextInput, TextInputState};
 pub use thermometer::{Thermometer, ThermometerShape};
 pub use timeline::{Timeline, TimelineShape};
+pub use toast::{Toast, ToastShape, ToastState};
 pub use toggle::{Toggle, ToggleShape};
+pub use tooltip::{Tooltip, TooltipShape};
 pub use tree_map::{TreeMap, TreeMapState, TreeShape};
 pub use typewriter::{Typewriter, TypewriterShape, TypewriterState};
 pub use value::Value;

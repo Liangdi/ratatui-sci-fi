@@ -20,6 +20,8 @@
 - *(examples)* Add inputs example showcasing the two multi-row inputs
 - *(widgets)* Add Breadcrumb / Tabs / ScrollView navigation widgets
 - *(examples)* Add navigation example showcasing the three navigation widgets
+- *(widgets)* Add Badge / Tooltip / Toast feedback widgets
+- *(examples)* Add feedback example showcasing the three feedback widgets
 
 ## [0.2.0] - 2026-06-15
 
