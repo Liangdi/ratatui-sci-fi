@@ -1,9 +1,15 @@
-//! **Widget gallery** — every widget in its own labelled cell, side by side.
+//! **Widget gallery** — the core 15 widgets, each in its own labelled cell.
 //!
-//! Where the `dashboard` example composites the widgets into a single HUD, this
-//! one isolates each component in its own panel so you can see exactly what it
-//! does and how it reacts. The 5×3 grid showcases all fifteen grid widgets,
-//! grouped top→bottom by kind (basics → containers → charts → effects):
+//! This is the original 5×3 overview of the basic/effect widgets (it predates
+//! the form / indicator / data-viz / overlay / info / nav / feedback additions).
+//! The 57 widgets added since each have their own focused example in
+//! `examples/` (form_controls, hud_effects, indicators, data_viz, overlay,
+//! info_display, inputs, navigation, feedback, data_charts, visual, inputs2).
+//!
+//! Where the `dashboard` example composites widgets into a single HUD, this
+//! one isolates each component so you can see exactly what it does and how it
+//! reacts. The grid is grouped top→bottom by kind (basics → containers →
+//! charts → effects):
 //!
 //! ```text
 //! ┌──────────────┬───────────────┬──────────────┐
