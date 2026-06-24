@@ -212,6 +212,9 @@ fn ui(f: &mut Frame, state: &mut SciFiRadarState) {
 | `BootSequence` | 开机逐行跑码 + 偶发屏幕闪烁 |
 | `BiometricChart` | 多轨迹快速波动折线图(心率 / 能量 / 辐射) |
 | `SciFiRadar` | Braille 圆形扫描 + 渐变衰减尾迹 + 可选 blips |
+| `Typewriter` | 逐字打字机,tick 驱动逐字 reveal + 闪烁光标(开机叙事 / AI 对白) |
+| `Marquee` | 横向滚动跑马灯(告警 ticker),可配速度 / 方向,自动循环 |
+| `DigitalClock` | 七段数码管时钟 `HH:MM:SS`(`█`/`░` 段位 + 闪烁冒号),空间不足降级为纯文本 |
 
 ### 数据图表组件(0.2.0 新增)
 | 组件 | 说明 |

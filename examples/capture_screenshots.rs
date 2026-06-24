@@ -47,6 +47,9 @@ mod widget_gallery;
 #[path = "form_controls.rs"]
 mod form_controls;
 #[allow(dead_code, unused_imports)]
+#[path = "hud_effects.rs"]
+mod hud_effects;
+#[allow(dead_code, unused_imports)]
 #[path = "agent_console.rs"]
 mod agent_console;
 
@@ -57,6 +60,7 @@ use dashboard as scene_dashboard;
 use matrix_rain as scene_matrix_rain;
 use widget_gallery as scene_widget_gallery;
 use form_controls as scene_form_controls;
+use hud_effects as scene_hud_effects;
 
 /// Pixel geometry shared across every frame. `cell_w`/`cell_h` are derived from
 /// the font's own metrics so box-drawing glyphs tile seamlessly.
@@ -526,6 +530,26 @@ fn main() -> std::io::Result<()> {
             scene_form_controls::App::tick,
             scene_form_controls::App::cycle_theme,
             |a: &scene_form_controls::App| a.theme(),
+        )?;
+    }
+
+    // HUD effects: typewriter / marquee / digital clock — ambient, tick-driven.
+    if selected("hud_effects") {
+        run_scene(
+            "hud_effects",
+            70,
+            16,
+            15,
+            90,
+            fps,
+            40,
+            metrics,
+            &fonts,
+            scene_hud_effects::App::new,
+            scene_hud_effects::draw,
+            scene_hud_effects::App::tick,
+            scene_hud_effects::App::cycle_theme,
+            |a: &scene_hud_effects::App| a.theme(),
         )?;
     }
 

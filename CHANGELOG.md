@@ -4,6 +4,8 @@
 
 - *(widgets)* Add Checkbox / RadioGroup / Slider / NumberStepper / Dropdown form controls
 - *(examples)* Add form_controls example showcasing the 5 interactive form controls
+- *(widgets)* Add Typewriter / Marquee / DigitalClock text/HUD effect widgets
+- *(examples)* Add hud_effects example showcasing the 3 ambient effects
 
 ## [0.2.0] - 2026-06-15
 

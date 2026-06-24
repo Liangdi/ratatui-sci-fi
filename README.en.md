@@ -194,6 +194,9 @@ Accessing a theme: `Theme::Cyberpunk.palette()` returns native `Color`s; `Theme:
 | `BootSequence` | Line-by-line boot text + occasional screen flicker |
 | `BiometricChart` | Multi-trace, fast-oscillating line chart (heart rate / energy / radiation) |
 | `SciFiRadar` | Braille circular sweep with a fading trail and optional blips |
+| `Typewriter` | Char-by-char reveal + blinking cursor (boot narrative / AI dialogue) |
+| `Marquee` | Horizontally scrolling ticker (alert crawl); configurable speed / direction |
+| `DigitalClock` | Seven-segment `HH:MM:SS` clock (`█`/`░` segments + blinking colon); degrades to plain text |
 
 ### Data-chart widgets (new in 0.2.0)
 | Widget | Description |
