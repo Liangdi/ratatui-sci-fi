@@ -503,18 +503,16 @@ impl StatefulWidget for CandlestickChart {
         if let Some(label) = &self.label {
             let label_y = chart_area.y + chart_area.height;
             if label_y < area.y + area.height {
-                let label_len = label.chars().count() as u16;
-                let label_x = area.x + (area.width.saturating_sub(label_len)) / 2;
-                let right = area.x + area.width;
-                for (x, ch) in (label_x..).zip(label.chars()) {
-                    if x >= right {
-                        break;
-                    }
-                    buf[(x, label_y)]
-                        .set_symbol(ch.to_string().as_str())
-                        .set_fg(wick_color)
-                        .set_bg(bg);
-                }
+                crate::widgets::util::draw_centered_label(
+                    buf,
+                    area.x,
+                    label_y,
+                    area.width,
+                    area.x + area.width,
+                    label,
+                    wick_color,
+                    bg,
+                );
             }
         }
     }

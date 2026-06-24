@@ -251,11 +251,7 @@ impl SpectrumBarsState {
             return;
         };
         let clamped = value.clamp(0.0, 1.0);
-        buf.push(clamped);
-        let overflow = buf.len().saturating_sub(self.window);
-        if overflow > 0 {
-            buf.drain(..overflow);
-        }
+        crate::widgets::util::capped_push(buf, clamped, self.window);
     }
 
     /// Advance the spectrum by one tick (demo / self-generated mode).
@@ -270,11 +266,7 @@ impl SpectrumBarsState {
         let t = self.tick as f64;
         for (i, buf) in self.buffers.iter_mut().enumerate() {
             let value = Self::oscillator(i, t);
-            buf.push(value);
-            let overflow = buf.len().saturating_sub(self.window);
-            if overflow > 0 {
-                buf.drain(..overflow);
-            }
+            crate::widgets::util::capped_push(buf, value, self.window);
         }
     }
 

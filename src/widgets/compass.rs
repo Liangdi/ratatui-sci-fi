@@ -452,7 +452,7 @@ impl StatefulWidget for Compass {
                 && by < (canvas_area.y + canvas_area.height) as i64
             {
                 let cell = &mut buf[(bx as u16, by as u16)];
-                cell.set_symbol(ch.to_string().as_str()).set_fg(cardinal_color).set_bg(bg);
+                cell.set_char(ch).set_fg(cardinal_color).set_bg(bg);
             }
         }
 
@@ -461,18 +461,16 @@ impl StatefulWidget for Compass {
         if let Some(label) = &self.label {
             let label_y = area.y + side;
             if label_y < area.y + area.height {
-                let label_len = label.chars().count() as u16;
-                let label_x = area.x + (side.saturating_sub(label_len)) / 2;
-                let right = area.x + area.width;
-                for (x, ch) in (label_x..).zip(label.chars()) {
-                    if x >= right {
-                        break;
-                    }
-                    buf[(x, label_y)]
-                        .set_symbol(ch.to_string().as_str())
-                        .set_fg(needle_color)
-                        .set_bg(bg);
-                }
+                crate::widgets::util::draw_centered_label(
+                    buf,
+                    area.x,
+                    label_y,
+                    side,
+                    area.x + area.width,
+                    label,
+                    needle_color,
+                    bg,
+                );
             }
         }
     }

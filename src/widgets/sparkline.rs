@@ -181,11 +181,7 @@ impl SparklineState {
     /// the oldest sample is dropped once the buffer exceeds `window`.
     pub fn push(&mut self, value: f64) {
         let clamped = value.clamp(0.0, 1.0);
-        self.samples.push(clamped);
-        let overflow = self.samples.len().saturating_sub(self.window);
-        if overflow > 0 {
-            self.samples.drain(..overflow);
-        }
+        crate::widgets::util::capped_push(&mut self.samples, clamped, self.window);
     }
 
     /// Advance the sparkline by one tick (demo / self-generated mode).

@@ -42,6 +42,7 @@ pub mod target_lock;
 pub mod text_input;
 pub mod toggle;
 pub mod tree_map;
+pub mod util;
 pub mod value;
 
 pub use activity_rings::{ActivityRings, ActivityRingsState, RingShape};

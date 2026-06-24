@@ -187,11 +187,7 @@ impl AreaChartState {
     pub fn tick(&mut self) {
         self.tick_count = self.tick_count.wrapping_add(1);
         let value = Self::oscillator(self.tick_count as f64);
-        self.samples.push(value);
-        let overflow = self.samples.len().saturating_sub(self.window);
-        if overflow > 0 {
-            self.samples.drain(..overflow);
-        }
+        crate::widgets::util::capped_push(&mut self.samples, value, self.window);
     }
 
     /// Feed a live sample (external-feed mode).
@@ -200,11 +196,7 @@ impl AreaChartState {
     /// the oldest sample is dropped once the buffer exceeds `window`.
     pub fn push(&mut self, value: f64) {
         let clamped = value.clamp(0.0, 1.0);
-        self.samples.push(clamped);
-        let overflow = self.samples.len().saturating_sub(self.window);
-        if overflow > 0 {
-            self.samples.drain(..overflow);
-        }
+        crate::widgets::util::capped_push(&mut self.samples, clamped, self.window);
     }
 
     /// Deterministic oscillator producing a value in `0.0..=1.0` for the given
@@ -360,15 +352,16 @@ impl StatefulWidget for AreaChart {
         {
             // Place the label on the bottom row of the area, centered.
             let label_y = area.y + area.height - 1;
-            let label_len = label.chars().count() as u16;
-            let label_x = area.x + area.width.saturating_sub(label_len) / 2;
-            let right = area.x + area.width;
-            for (x, ch) in (label_x..).zip(label.chars()) {
-                if x >= right {
-                    break;
-                }
-                buf[(x, label_y)].set_symbol(ch.to_string().as_str()).set_fg(line_color).set_bg(bg);
-            }
+            crate::widgets::util::draw_centered_label(
+                buf,
+                area.x,
+                label_y,
+                area.width,
+                area.x + area.width,
+                label,
+                line_color,
+                bg,
+            );
         }
     }
 }

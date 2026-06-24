@@ -147,12 +147,8 @@ impl BiometricChartState {
             return;
         };
         let clamped = value.clamp(Y_MIN, Y_MAX);
-        buf.push(clamped);
         // Cap the rolling window.
-        let overflow = buf.len().saturating_sub(self.window);
-        if overflow > 0 {
-            buf.drain(..overflow);
-        }
+        crate::widgets::util::capped_push(buf, clamped, self.window);
     }
 
     /// Advance the waveform by one tick.
@@ -168,11 +164,7 @@ impl BiometricChartState {
         let t = self.tick as f64;
         for (i, buf) in self.buffers.iter_mut().enumerate() {
             let value = Self::oscillator(i, t);
-            buf.push(value);
-            let overflow = buf.len().saturating_sub(self.window);
-            if overflow > 0 {
-                buf.drain(..overflow);
-            }
+            crate::widgets::util::capped_push(buf, value, self.window);
         }
     }
 

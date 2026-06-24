@@ -230,11 +230,7 @@ impl StripChartState {
             return;
         };
         let clamped = value.clamp(Y_MIN, Y_MAX);
-        buf.push(clamped);
-        let overflow = buf.len().saturating_sub(self.window);
-        if overflow > 0 {
-            buf.drain(..overflow);
-        }
+        crate::widgets::util::capped_push(buf, clamped, self.window);
     }
 
     /// Advance every channel's trace by one tick (demo / self-generated mode).
@@ -250,11 +246,7 @@ impl StripChartState {
         let t = self.tick_count as f64;
         for (i, buf) in self.buffers.iter_mut().enumerate() {
             let value = Self::oscillator(i, t);
-            buf.push(value);
-            let overflow = buf.len().saturating_sub(self.window);
-            if overflow > 0 {
-                buf.drain(..overflow);
-            }
+            crate::widgets::util::capped_push(buf, value, self.window);
         }
     }
 

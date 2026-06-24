@@ -394,16 +394,17 @@ impl StatefulWidget for DonutChart {
         {
             let label_y = area.y + side;
             if label_y < area.y + area.height {
-                let label_len = label.chars().count() as u16;
                 // Center the label under the ring.
-                let label_x = area.x + (side.saturating_sub(label_len)) / 2;
-                let right = area.x + area.width;
-                for (x, ch) in (label_x..).zip(label.chars()) {
-                    if x >= right {
-                        break;
-                    }
-                    buf[(x, label_y)].set_symbol(ch.to_string().as_str()).set_fg(accent).set_bg(bg);
-                }
+                crate::widgets::util::draw_centered_label(
+                    buf,
+                    area.x,
+                    label_y,
+                    side,
+                    area.x + area.width,
+                    label,
+                    accent,
+                    bg,
+                );
             }
         }
     }
