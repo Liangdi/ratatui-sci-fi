@@ -22,6 +22,7 @@ pub mod candlestick;
 pub mod caret;
 pub mod checkbox;
 pub mod collapsible_panel;
+pub mod combo_box;
 pub mod comm_log;
 pub mod compass;
 pub mod countdown_timer;
@@ -82,6 +83,7 @@ pub mod tree_map;
 pub mod typewriter;
 pub mod util;
 pub mod value;
+pub mod vertical_slider;
 
 pub use activity_rings::{ActivityRings, ActivityRingsState, RingShape};
 pub use area_chart::{AreaChart, AreaChartState, AreaShape};
@@ -97,6 +99,7 @@ pub use candlestick::{CandlestickChart, CandlestickChartState, CandlestickShape,
 pub use caret::CaretShape;
 pub use checkbox::{Checkbox, CheckboxShape};
 pub use collapsible_panel::{CollapsiblePanel, CollapsiblePanelState, CollapsibleShape};
+pub use combo_box::{ComboBox, ComboBoxState};
 pub use comm_log::{CommKind, CommLog, CommLogMessage, CommLogState, CommStyle};
 pub use compass::{Compass, CompassShape, CompassState};
 pub use countdown_timer::{CountdownTimer, CountdownTimerShape, CountdownTimerState};
@@ -156,3 +159,4 @@ pub use tooltip::{Tooltip, TooltipShape};
 pub use tree_map::{TreeMap, TreeMapState, TreeShape};
 pub use typewriter::{Typewriter, TypewriterShape, TypewriterState};
 pub use value::Value;
+pub use vertical_slider::{VerticalSlider, VerticalSliderShape, VerticalSliderState};

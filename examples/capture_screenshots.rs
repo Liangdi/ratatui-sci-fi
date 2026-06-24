@@ -77,6 +77,9 @@ mod data_charts;
 #[path = "visual.rs"]
 mod visual;
 #[allow(dead_code, unused_imports)]
+#[path = "inputs2.rs"]
+mod inputs2;
+#[allow(dead_code, unused_imports)]
 #[path = "agent_console.rs"]
 mod agent_console;
 
@@ -97,6 +100,7 @@ use navigation as scene_navigation;
 use feedback as scene_feedback;
 use data_charts as scene_data_charts;
 use visual as scene_visual;
+use inputs2 as scene_inputs2;
 
 /// Pixel geometry shared across every frame. `cell_w`/`cell_h` are derived from
 /// the font's own metrics so box-drawing glyphs tile seamlessly.
@@ -766,6 +770,26 @@ fn main() -> std::io::Result<()> {
             scene_visual::App::tick,
             scene_visual::App::cycle_theme,
             |a: &scene_visual::App| a.theme(),
+        )?;
+    }
+
+    // Inputs 2: vertical slider + combo box.
+    if selected("inputs2") {
+        run_scene(
+            "inputs2",
+            60,
+            18,
+            15,
+            90,
+            fps,
+            40,
+            metrics,
+            &fonts,
+            scene_inputs2::App::new,
+            scene_inputs2::draw,
+            scene_inputs2::App::tick,
+            scene_inputs2::App::cycle_theme,
+            |a: &scene_inputs2::App| a.theme(),
         )?;
     }
 

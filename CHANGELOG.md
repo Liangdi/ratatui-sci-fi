@@ -26,6 +26,8 @@
 - *(examples)* Add data_charts example showcasing the three
 - *(widgets)* Add Barcode / ImageView visual widgets
 - *(examples)* Add visual example showcasing the two
+- *(widgets)* Add VerticalSlider / ComboBox input widgets
+- *(examples)* Add inputs2 example showcasing the two
 
 ## [0.2.0] - 2026-06-15
 
