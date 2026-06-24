@@ -1063,7 +1063,7 @@ mod tests {
             s.push(CommLogMessage::new("A", format!("msg-{i:02}"), CommKind::Agent));
         }
         // At the bottom, the newest is visible; the oldest is not.
-        let mut buf = render_scrollbar(&mut s, 24, 5, Theme::Cyberpunk);
+        let buf = render_scrollbar(&mut s, 24, 5, Theme::Cyberpunk);
         assert!(row_string(&buf, 4, 23).contains("39"));
         assert!(!row_string(&buf, 0, 23).contains("00"));
 

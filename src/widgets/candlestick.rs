@@ -673,10 +673,10 @@ mod tests {
     fn state_default_seeds_candles() {
         let state = CandlestickChartState::default();
         assert!(!state.is_empty(), "default state should seed candles");
-        assert!(state.len() >= 1);
+        assert!(!state.is_empty());
         // last_close should reflect the seeded walk (within price bounds).
         let lc = state.last_close();
-        assert!(lc >= 0.0 && lc <= 1.0, "last_close out of range: {}", lc);
+        assert!((0.0..=1.0).contains(&lc), "last_close out of range: {}", lc);
     }
 
     #[test]
@@ -697,7 +697,7 @@ mod tests {
 
     #[test]
     fn candle_and_last_close_accessors() {
-        let mut state = CandlestickChartState::new(8);
+        let state = CandlestickChartState::new(8);
         // Out-of-range index returns None.
         assert!(state.candle(999).is_none());
         // last_close matches the last candle's close.
@@ -784,7 +784,7 @@ mod tests {
                     (c.close, "close"),
                 ] {
                     assert!(
-                        p >= MIN_PRICE - 1e-9 && p <= MAX_PRICE + 1e-9,
+                        (MIN_PRICE - 1e-9..=MAX_PRICE + 1e-9).contains(&p),
                         "{name}={p} out of [{MIN_PRICE},{MAX_PRICE}]"
                     );
                 }

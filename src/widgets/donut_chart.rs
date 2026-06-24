@@ -480,13 +480,10 @@ mod tests {
             state.tick();
         }
         assert_eq!(state.tick_count(), 5, "tick_count should advance");
-        let mut any_changed = false;
-        for i in 0..start_values.len() {
-            if (state.value(i) - start_values[i]).abs() > 1e-9 {
-                any_changed = true;
-                break;
-            }
-        }
+        let any_changed = start_values
+            .iter()
+            .enumerate()
+            .any(|(i, &sv)| (state.value(i) - sv).abs() > 1e-9);
         assert!(any_changed, "at least one slice value should change over several ticks");
     }
 

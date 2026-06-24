@@ -235,6 +235,7 @@ fn fill_rect(buf: &mut [u8], stride: u32, x: u32, y: u32, w: u32, h: u32, [r, g,
 }
 
 /// Blend a single glyph pixel of color `rgb` with anti-alias coverage `a`.
+#[allow(clippy::too_many_arguments)]
 fn blend(buf: &mut [u8], stride: u32, w: u32, h: u32, x: i32, y: i32, a: f32, [r, g, b]: [u8; 3]) {
     if (0..w as i32).contains(&x) && (0..h as i32).contains(&y) {
         let o = (y as u32 * stride + x as u32) as usize * 4;
@@ -292,6 +293,7 @@ fn buffer_to_rgba(
 }
 
 /// Outline + rasterize one code point at `(pen_x, baseline)`.
+#[allow(clippy::too_many_arguments)]
 fn draw_char(
     rgba: &mut [u8],
     stride: u32,
@@ -438,6 +440,7 @@ fn fallback_candidates() -> Vec<Option<PathBuf>> {
 }
 
 /// Drive one example scene headlessly and emit `screenshot/<name>.gif`.
+#[allow(clippy::too_many_arguments)]
 fn run_scene<A>(
     name: &str,
     cols: u16,
@@ -833,12 +836,12 @@ fn main() -> std::io::Result<()> {
                 a.fast_forward_to_console();
                 a
             },
-            |f, a| scene_agent_console::draw(f, a),
+            scene_agent_console::draw,
             |a| {
                 a.tick();
                 let i = frame.get();
                 frame.set(i + 1);
-                if i > 0 && i % 34 == 0 && !a.chat_streaming() {
+                if i > 0 && i.is_multiple_of(34) && !a.chat_streaming() {
                     a.transmit(script[((i / 34) as usize) % script.len()]);
                 }
             },

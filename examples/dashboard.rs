@@ -124,6 +124,12 @@ pub struct App {
     sfx: Sfx,
 }
 
+impl Default for App {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl App {
     pub fn new() -> Self {
         let mut radar = SciFiRadarState::default();

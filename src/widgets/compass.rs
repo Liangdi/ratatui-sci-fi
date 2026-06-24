@@ -582,7 +582,7 @@ mod tests {
         );
         // It must NOT have moved the long way (down toward 180).
         assert!(
-            eased > 350.0 || eased < 10.0,
+            !(10.0..=350.0).contains(&eased),
             "eased value should be on the short arc near 350/0/10, got {}",
             eased
         );

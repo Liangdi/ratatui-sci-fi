@@ -38,6 +38,12 @@ pub struct App {
     theme_idx: usize,
 }
 
+impl Default for App {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl App {
     pub fn new() -> Self {
         Self { state: MatrixRainState::default(), theme_idx: 0 }
