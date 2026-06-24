@@ -198,6 +198,11 @@ fn ui(f: &mut Frame, state: &mut SciFiRadarState) {
 | `Spinner` | Braille 活动指示器 `⠋⠙⠹…`,每 tick 推进一格 |
 | `Toggle` | 布尔开关 `[◉ SHIELDS · ENGAGED ]` / `[ ○ SHIELDS · STANDBY ]` |
 | `TextInput` | 单行输入框,闪烁光标 + `handle_key(KeyEvent)` + 占位符,光标按 char 索引 |
+| `Checkbox` | 勾选框 `[✓] SHIELDS` / `[ ] SHIELDS`,与 Toggle 同构的无状态布尔控件 |
+| `RadioGroup` | 单选组,选中 `◉`/未选 `○`,`handle_key` 上下循环选择 |
+| `Slider` | 水平滑块 `════◉────── 42%`,归一化 0..1,左右步进,按阈值变色 |
+| `NumberStepper` | 数字步进 `◂ 42 ▸`,`min/max/step` 可配,左右加减并 clamp |
+| `Dropdown` | 下拉选择,折叠 `▾ BETA`,展开为 List 式浮层(app 控制 area + Clear) |
 
 ### 特效组件
 | 组件 | 说明 |

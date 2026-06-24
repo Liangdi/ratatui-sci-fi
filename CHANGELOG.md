@@ -1,3 +1,10 @@
+## [Unreleased]
+
+### 🚀 Features
+
+- *(widgets)* Add Checkbox / RadioGroup / Slider / NumberStepper / Dropdown form controls
+- *(examples)* Add form_controls example showcasing the 5 interactive form controls
+
 ## [0.2.0] - 2026-06-15
 
 ### 🚀 Features

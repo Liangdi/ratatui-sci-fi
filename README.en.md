@@ -180,6 +180,11 @@ Accessing a theme: `Theme::Cyberpunk.palette()` returns native `Color`s; `Theme:
 | `Spinner` | Braille activity indicator `⠋⠙⠹…`, advances one glyph per tick |
 | `Toggle` | Boolean switch `[◉ SHIELDS · ENGAGED ]` / `[ ○ SHIELDS · STANDBY ]` |
 | `TextInput` | Single-line input box, blinking cursor + `handle_key(KeyEvent)` + placeholder, cursor by char index |
+| `Checkbox` | Check box `[✓] SHIELDS` / `[ ] SHIELDS`, stateless boolean sibling of Toggle |
+| `RadioGroup` | Radio group, selected `◉` / unselected `○`, `handle_key` modulo nav |
+| `Slider` | Horizontal slider `════◉────── 42%`, normalized 0..1, threshold-colored |
+| `NumberStepper` | Number stepper `◂ 42 ▸`, configurable `min/max/step`, clamped |
+| `Dropdown` | Dropdown, collapsed `▾ BETA`, expands to a List-style overlay (app controls area + Clear) |
 
 ### Effects
 | Widget | Description |

@@ -44,6 +44,9 @@ mod button;
 #[path = "widget_gallery.rs"]
 mod widget_gallery;
 #[allow(dead_code, unused_imports)]
+#[path = "form_controls.rs"]
+mod form_controls;
+#[allow(dead_code, unused_imports)]
 #[path = "agent_console.rs"]
 mod agent_console;
 
@@ -53,6 +56,7 @@ use button as scene_button;
 use dashboard as scene_dashboard;
 use matrix_rain as scene_matrix_rain;
 use widget_gallery as scene_widget_gallery;
+use form_controls as scene_form_controls;
 
 /// Pixel geometry shared across every frame. `cell_w`/`cell_h` are derived from
 /// the font's own metrics so box-drawing glyphs tile seamlessly.
@@ -500,6 +504,28 @@ fn main() -> std::io::Result<()> {
             scene_widget_gallery::App::tick,
             scene_widget_gallery::App::cycle_theme,
             |a: &scene_widget_gallery::App| a.theme(),
+        )?;
+    }
+
+    // Form controls: the 5 interactive widgets in their initial (un-driven)
+    // state — capture_screenshots only ticks, never sends keys, so values stay
+    // at their defaults while the theme cycles.
+    if selected("form_controls") {
+        run_scene(
+            "form_controls",
+            70,
+            24,
+            10,
+            80,
+            fps,
+            40,
+            metrics,
+            &fonts,
+            scene_form_controls::App::new,
+            scene_form_controls::draw,
+            scene_form_controls::App::tick,
+            scene_form_controls::App::cycle_theme,
+            |a: &scene_form_controls::App| a.theme(),
         )?;
     }
 
