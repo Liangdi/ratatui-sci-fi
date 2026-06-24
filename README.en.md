@@ -185,6 +185,10 @@ Accessing a theme: `Theme::Cyberpunk.palette()` returns native `Color`s; `Theme:
 | `Slider` | Horizontal slider `════◉────── 42%`, normalized 0..1, threshold-colored |
 | `NumberStepper` | Number stepper `◂ 42 ▸`, configurable `min/max/step`, clamped |
 | `Dropdown` | Dropdown, collapsed `▾ BETA`, expands to a List-style overlay (app controls area + Clear) |
+| `StatusLED` | Status dot `● LABEL`, colored by `Level` (Ok/Warn/Alert/Normal), stateless |
+| `CountdownTimer` | `MM:SS` countdown, ≤10s blinks Alert / ≤30s Warn; app decrements remaining each second |
+| `ProgressBar` | Linear bar: `Some(ratio)` determinate fill / `None` indeterminate scan (vs. segmented EnergyGauge) |
+| `CollapsiblePanel` | Folding panel: collapsed `▸` header / expanded border + `inner(area,&state)` body |
 
 ### Effects
 | Widget | Description |

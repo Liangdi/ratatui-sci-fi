@@ -203,6 +203,10 @@ fn ui(f: &mut Frame, state: &mut SciFiRadarState) {
 | `Slider` | 水平滑块 `════◉────── 42%`,归一化 0..1,左右步进,按阈值变色 |
 | `NumberStepper` | 数字步进 `◂ 42 ▸`,`min/max/step` 可配,左右加减并 clamp |
 | `Dropdown` | 下拉选择,折叠 `▾ BETA`,展开为 List 式浮层(app 控制 area + Clear) |
+| `StatusLED` | 状态灯 `● LABEL`,按 `Level`(Ok/Warn/Alert/Normal)变色,无状态 |
+| `CountdownTimer` | 倒计时 `MM:SS`,≤10s 紧急闪烁(Alert)、≤30s Warn,app 每秒减 remaining |
+| `ProgressBar` | 线性进度条,`Some(ratio)` 确定填充 / `None` 不确定扫描(区别于分段 EnergyGauge) |
+| `CollapsiblePanel` | 可折叠面板,折叠为单行标题 `▸`,展开为边框 + `inner(area,&state)` 内容区 |
 
 ### 特效组件
 | 组件 | 说明 |

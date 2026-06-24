@@ -50,6 +50,9 @@ mod form_controls;
 #[path = "hud_effects.rs"]
 mod hud_effects;
 #[allow(dead_code, unused_imports)]
+#[path = "indicators.rs"]
+mod indicators;
+#[allow(dead_code, unused_imports)]
 #[path = "agent_console.rs"]
 mod agent_console;
 
@@ -61,6 +64,7 @@ use matrix_rain as scene_matrix_rain;
 use widget_gallery as scene_widget_gallery;
 use form_controls as scene_form_controls;
 use hud_effects as scene_hud_effects;
+use indicators as scene_indicators;
 
 /// Pixel geometry shared across every frame. `cell_w`/`cell_h` are derived from
 /// the font's own metrics so box-drawing glyphs tile seamlessly.
@@ -550,6 +554,26 @@ fn main() -> std::io::Result<()> {
             scene_hud_effects::App::tick,
             scene_hud_effects::App::cycle_theme,
             |a: &scene_hud_effects::App| a.theme(),
+        )?;
+    }
+
+    // Indicators: status LED / countdown / progress / collapsible panel.
+    if selected("indicators") {
+        run_scene(
+            "indicators",
+            70,
+            24,
+            15,
+            90,
+            fps,
+            40,
+            metrics,
+            &fonts,
+            scene_indicators::App::new,
+            scene_indicators::draw,
+            scene_indicators::App::tick,
+            scene_indicators::App::cycle_theme,
+            |a: &scene_indicators::App| a.theme(),
         )?;
     }
 
