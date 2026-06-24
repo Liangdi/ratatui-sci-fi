@@ -14,7 +14,7 @@
 ## ✨ 特性
 
 - **八大内置主题** —— Cyberpunk / Fallout / Weyland / DeepSpace / Bloodmoon / Nebula / Arctic / Sentinel,语义化调色板(`accent`/`bg`/`alert`/…),每个主题同时提供原生 `Color` 与基于 `ratatui-style` 的 CSS cascade 样式表。
-- **47 个组件** —— 20 个基础 / 表单 / 指示组件 + 8 个高感官特效组件 + 19 个数据图表组件,全部按 ratatui 0.30 的 `Widget` / `StatefulWidget` 标准实现。
+- **49 个组件** —— 20 个基础 / 表单 / 指示组件 + 10 个高感官特效组件 + 19 个数据图表组件,全部按 ratatui 0.30 的 `Widget` / `StatefulWidget` 标准实现。
 - **运行时合成音效** —— 零音频资产、零版权负担,6 个音效由纯 Rust 波形合成;`rodio` 后端,无设备时静默降级。
 - **Markdown 对话流** —— `CommLog` 的 chat 样式把每条消息渲染成**带框卡片**(user/agent 靠右/靠左区分),正文走 [pulldown-cmark](https://crates.io/crates/pulldown-cmark) 的 CommonMark 渲染(标题 / 粗斜体 / `行内代码` / 代码块 / 列表 / 引用 / 分隔线),逐字流式出现 + 可滚动 + 滚动条,默认开启的 `markdown` feature。
 - **后端无关渲染** —— 库通过 ratatui 的离屏 `Buffer` 渲染,不做任何终端 I/O;`crossterm` 作为正式依赖仅为 `TextInputState::handle_key` 提供按键事件类型(下游用 termion/termwiz 时可改用自己的事件循环)。
@@ -219,6 +219,8 @@ fn ui(f: &mut Frame, state: &mut SciFiRadarState) {
 | `Typewriter` | 逐字打字机,tick 驱动逐字 reveal + 闪烁光标(开机叙事 / AI 对白) |
 | `Marquee` | 横向滚动跑马灯(告警 ticker),可配速度 / 方向,自动循环 |
 | `DigitalClock` | 七段数码管时钟 `HH:MM:SS`(`█`/`░` 段位 + 闪烁冒号),空间不足降级为纯文本 |
+| `ScanlineOverlay` | 全屏 CRT overlay:移动 accent 扫描线 + 可选暗角(叠在所有控件之上) |
+| `Noise` | 全屏雪花噪点 overlay:`Snow` 每帧变 / `Static` 稳定,`intensity` 控制密度 |
 
 ### 数据图表组件(0.2.0 新增)
 | 组件 | 说明 |
@@ -289,7 +291,7 @@ ratatui-sci-fi/                  # 单 crate(库)
 ├── src/
 │   ├── lib.rs                   # 约定 + `pub use widgets::*` 根级再导出
 │   ├── themes/                  # Palette / Theme / ratatui-style Stylesheet
-│   ├── widgets/                 # 47 个组件(基础 / 表单 / 指示 / 特效 / 数据图表)
+│   ├── widgets/                 # 49 个组件(基础 / 表单 / 指示 / 特效 / 数据图表)
 │   └── audio/                   # 目录(Sound/CATALOG)+ synth + AudioSystem
 └── examples/
     ├── dashboard.rs             # 综合科幻仪表盘(全组件 + 音效)
@@ -308,7 +310,7 @@ ratatui-sci-fi/                  # 单 crate(库)
 
 ## 🗺️ 路线图
 
-- [x] 八大主题 + 47 个组件(基础 / 表单 / 指示 / 特效 / 数据图表)
+- [x] 八大主题 + 49 个组件(基础 / 表单 / 指示 / 特效 / 数据图表)
 - [x] 运行时合成音效引擎(`audio` feature)
 - [ ] 更多音色参数化(频率/时长可调)
 - [x] 命名捕获的 demo 动图 / 截图(`screenshot/` + `capture_screenshots` 无头渲染示例,需 ffmpeg)

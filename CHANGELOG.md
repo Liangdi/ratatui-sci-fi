@@ -10,6 +10,8 @@
 - *(examples)* Add indicators example showcasing the 4 indicator/container widgets
 - *(widgets)* Add Oscilloscope / StarMap / Graph data-viz widgets (Braille canvas)
 - *(examples)* Add data_viz example showcasing the 3 data-viz widgets
+- *(widgets)* Add ScanlineOverlay / Noise ambient overlay widgets (full-screen CRT pass)
+- *(examples)* Add overlay example showcasing the ambient overlay layer
 
 ## [0.2.0] - 2026-06-15
 
