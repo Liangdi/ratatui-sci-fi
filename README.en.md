@@ -306,7 +306,7 @@ ratatui-sci-fi/                  # single crate (library)
     ├── hud_effects.rs           # HUD effects (typewriter / marquee / clock)
     ├── indicators.rs            # indicators / containers
     ├── data_viz.rs              # data viz (oscilloscope / star map / graph)
-    └── …                        # others: agent_console / matrix_rain / button / charts / capture_screenshots
+    └── …                        # others: agent_console / matrix_rain / button / charts / navigation / feedback / data_charts / visual / inputs2 / capture_screenshots
 ```
 
 - **Two theming paths**: use `palette()` for raw `Color`s (good for direct `Canvas` drawing), or `stylesheet()` for CSS-cascade styling (good for declarative styles). Same RGB source, no drift.

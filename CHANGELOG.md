@@ -2,32 +2,20 @@
 
 ### 🚀 Features
 
-- *(widgets)* Add Checkbox / RadioGroup / Slider / NumberStepper / Dropdown form controls
-- *(examples)* Add form_controls example showcasing the 5 interactive form controls
-- *(widgets)* Add Typewriter / Marquee / DigitalClock text/HUD effect widgets
-- *(examples)* Add hud_effects example showcasing the 3 ambient effects
-- *(widgets)* Add StatusLED / CountdownTimer / CollapsiblePanel / ProgressBar indicator/container widgets
-- *(examples)* Add indicators example showcasing the 4 indicator/container widgets
-- *(widgets)* Add Oscilloscope / StarMap / Graph data-viz widgets (Braille canvas)
-- *(examples)* Add data_viz example showcasing the 3 data-viz widgets
-- *(widgets)* Add ScanlineOverlay / Noise ambient overlay widgets (full-screen CRT pass)
-- *(examples)* Add overlay example showcasing the ambient overlay layer
-- *(widgets)* Add BigText / Stat / KeyValue / Timeline / Table information-display widgets
-- *(examples)* Add info_display example showcasing the 5 information widgets
-- *(widgets)* Add SignalBars / BatteryIndicator / Thermometer indicator widgets
-- *(examples)* Extend indicators example with the 3 new indicators
-- *(widgets)* Add MultiSelectList / TextArea multi-row input widgets
-- *(examples)* Add inputs example showcasing the two multi-row inputs
-- *(widgets)* Add Breadcrumb / Tabs / ScrollView navigation widgets
-- *(examples)* Add navigation example showcasing the three navigation widgets
-- *(widgets)* Add Badge / Tooltip / Toast feedback widgets
-- *(examples)* Add feedback example showcasing the three feedback widgets
-- *(widgets)* Add PieChart / Speedometer / LineChart data-viz widgets
-- *(examples)* Add data_charts example showcasing the three
-- *(widgets)* Add Barcode / ImageView visual widgets
-- *(examples)* Add visual example showcasing the two
-- *(widgets)* Add VerticalSlider / ComboBox input widgets
-- *(examples)* Add inputs2 example showcasing the two
+- *(widgets)* Add 40 new widgets across 10 categories:
+  - form: Checkbox, RadioGroup, Slider, NumberStepper, Dropdown
+  - HUD effects: Typewriter, Marquee, DigitalClock
+  - indicators: StatusLED, CountdownTimer, CollapsiblePanel, ProgressBar, SignalBars, BatteryIndicator, Thermometer
+  - data-viz: Oscilloscope, StarMap, Graph, PieChart, Speedometer, LineChart
+  - ambient overlay: ScanlineOverlay, Noise
+  - information: BigText, Stat, KeyValue, Timeline, Table
+  - navigation: Breadcrumb, Tabs, ScrollView
+  - feedback: Badge, Tooltip, Toast
+  - input: MultiSelectList, TextArea, VerticalSlider, ComboBox
+  - visual: Barcode, ImageView
+- *(widgets)* Add PieChart `Gapped` and Graph `Diamond` shape variants
+- *(examples)* Add 12 new examples — form_controls, hud_effects, indicators, data_viz, overlay, info_display, inputs, navigation, feedback, data_charts, visual, inputs2
+- *(examples)* Extend the dashboard with DigitalClock (header) + a status strip (StatusLED + SignalBars + ProgressBar)
 
 ## [0.2.0] - 2026-06-15
 

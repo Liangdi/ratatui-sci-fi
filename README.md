@@ -323,7 +323,7 @@ ratatui-sci-fi/                  # 单 crate(库)
     ├── hud_effects.rs           # HUD 效果(打字机 / 跑马灯 / 数码时钟)
     ├── indicators.rs            # 指示器 / 容器
     ├── data_viz.rs              # 数据可视化(示波器 / 星图 / 拓扑)
-    └── …                        # 其他:agent_console / matrix_rain / button / charts / capture_screenshots
+    └── …                        # 其他:agent_console / matrix_rain / button / charts / navigation / feedback / data_charts / visual / inputs2 / capture_screenshots
 ```
 
 - **双路径主题**:直接用 `palette()` 取 `Color`(适于 Canvas 直绘),或用 `stylesheet()` 走 CSS cascade(适于声明式样式)。同源 RGB,不漂移。
