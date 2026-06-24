@@ -18,6 +18,8 @@
 - *(examples)* Extend indicators example with the 3 new indicators
 - *(widgets)* Add MultiSelectList / TextArea multi-row input widgets
 - *(examples)* Add inputs example showcasing the two multi-row inputs
+- *(widgets)* Add Breadcrumb / Tabs / ScrollView navigation widgets
+- *(examples)* Add navigation example showcasing the three navigation widgets
 
 ## [0.2.0] - 2026-06-15
 

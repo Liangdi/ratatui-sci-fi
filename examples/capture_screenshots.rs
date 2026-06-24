@@ -65,6 +65,9 @@ mod info_display;
 #[path = "inputs.rs"]
 mod inputs;
 #[allow(dead_code, unused_imports)]
+#[path = "navigation.rs"]
+mod navigation;
+#[allow(dead_code, unused_imports)]
 #[path = "agent_console.rs"]
 mod agent_console;
 
@@ -81,6 +84,7 @@ use data_viz as scene_data_viz;
 use overlay as scene_overlay;
 use info_display as scene_info_display;
 use inputs as scene_inputs;
+use navigation as scene_navigation;
 
 /// Pixel geometry shared across every frame. `cell_w`/`cell_h` are derived from
 /// the font's own metrics so box-drawing glyphs tile seamlessly.
@@ -670,6 +674,26 @@ fn main() -> std::io::Result<()> {
             scene_inputs::App::tick,
             scene_inputs::App::cycle_theme,
             |a: &scene_inputs::App| a.theme(),
+        )?;
+    }
+
+    // Navigation: breadcrumb + tabs + scroll view.
+    if selected("navigation") {
+        run_scene(
+            "navigation",
+            70,
+            24,
+            15,
+            90,
+            fps,
+            40,
+            metrics,
+            &fonts,
+            scene_navigation::App::new,
+            scene_navigation::draw,
+            scene_navigation::App::tick,
+            scene_navigation::App::cycle_theme,
+            |a: &scene_navigation::App| a.theme(),
         )?;
     }
 
