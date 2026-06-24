@@ -14,7 +14,7 @@ English | **[中文](README.md)**
 ## ✨ Features
 
 - **Eight built-in themes** — Cyberpunk / Fallout / Weyland / DeepSpace / Bloodmoon / Nebula / Arctic / Sentinel, with a semantic palette (`accent` / `bg` / `alert` / …). Each theme exposes both native ratatui `Color`s and a `ratatui-style` CSS-cascade stylesheet.
-- **68 widgets** — 36 basic / form / indicator / info / nav / feedback widgets + 10 high-sensory effect widgets + 22 data-chart widgets, all implemented against the ratatui 0.30 `Widget` / `StatefulWidget` model.
+- **70 widgets** — 36 basic / form / indicator / info / nav / feedback widgets + 12 high-sensory effect widgets + 22 data-chart widgets, all implemented against the ratatui 0.30 `Widget` / `StatefulWidget` model.
 - **Runtime-synthesized audio** — no audio assets, no licensing burden. Six sound effects are synthesized from pure-Rust waveforms; the `rodio`-backed `AudioSystem` plays them and degrades silently when no device is present.
 - **Markdown chat streams** — `CommLog`'s chat style renders each message as a **bordered card** (user/agent left/right), bodies go through [pulldown-cmark](https://crates.io/crates/pulldown-cmark) CommonMark rendering, with a streaming typewriter reveal + scrollbar; the `markdown` feature is on by default.
 - **Backend-agnostic rendering** — the library renders via ratatui's offscreen `Buffer` and does no terminal I/O; `crossterm` is a dependency only for the `TextInputState::handle_key` event type (apps using termion/termwiz can supply their own event loop).
@@ -219,6 +219,8 @@ Accessing a theme: `Theme::Cyberpunk.palette()` returns native `Color`s; `Theme:
 | `DigitalClock` | Seven-segment `HH:MM:SS` clock (`█`/`░` segments + blinking colon); degrades to plain text |
 | `ScanlineOverlay` | Full-screen CRT overlay: moving accent scanline + optional vignette (rendered over all widgets) |
 | `Noise` | Full-screen snow overlay: `Snow` re-rolls per tick / `Static` frozen; intensity-scaled |
+| `Barcode` | 1D barcode strip; each char's 8 bits → bar (`█`×2) / gap runs; optional caption |
+| `ImageView` | Centered multi-line ASCII art (accent / muted / fg) |
 
 ### Data-chart widgets (new in 0.2.0)
 | Widget | Description |
@@ -293,7 +295,7 @@ ratatui-sci-fi/                  # single crate (library)
 ├── src/
 │   ├── lib.rs                   # conventions + `pub use widgets::*` re-exports
 │   ├── themes/                  # Palette / Theme / ratatui-style Stylesheet
-│   ├── widgets/                 # 68 widgets (basic / form / indicator / info / nav / feedback / effect / chart)
+│   ├── widgets/                 # 70 widgets (basic / form / indicator / info / nav / feedback / effect / chart)
 │   └── audio/                   # catalog (Sound/CATALOG) + synth + AudioSystem
 └── examples/
     ├── dashboard.rs             # composite sci-fi dashboard (all widgets + audio)
@@ -312,7 +314,7 @@ ratatui-sci-fi/                  # single crate (library)
 
 ## 🗺️ Roadmap
 
-- [x] Eight themes + 68 widgets (basic / form / indicator / info / nav / feedback / effect / data-chart)
+- [x] Eight themes + 70 widgets (basic / form / indicator / info / nav / feedback / effect / data-chart)
 - [x] Runtime-synthesized audio engine (`audio` feature)
 - [ ] Parameterize sound character (tunable frequency/duration)
 - [x] Named demo GIFs / screenshots (`screenshot/` + the headless `capture_screenshots` example; needs ffmpeg)

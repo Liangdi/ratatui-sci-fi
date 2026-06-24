@@ -24,6 +24,8 @@
 - *(examples)* Add feedback example showcasing the three feedback widgets
 - *(widgets)* Add PieChart / Speedometer / LineChart data-viz widgets
 - *(examples)* Add data_charts example showcasing the three
+- *(widgets)* Add Barcode / ImageView visual widgets
+- *(examples)* Add visual example showcasing the two
 
 ## [0.2.0] - 2026-06-15
 

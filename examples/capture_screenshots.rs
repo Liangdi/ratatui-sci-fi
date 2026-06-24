@@ -74,6 +74,9 @@ mod feedback;
 #[path = "data_charts.rs"]
 mod data_charts;
 #[allow(dead_code, unused_imports)]
+#[path = "visual.rs"]
+mod visual;
+#[allow(dead_code, unused_imports)]
 #[path = "agent_console.rs"]
 mod agent_console;
 
@@ -93,6 +96,7 @@ use inputs as scene_inputs;
 use navigation as scene_navigation;
 use feedback as scene_feedback;
 use data_charts as scene_data_charts;
+use visual as scene_visual;
 
 /// Pixel geometry shared across every frame. `cell_w`/`cell_h` are derived from
 /// the font's own metrics so box-drawing glyphs tile seamlessly.
@@ -742,6 +746,26 @@ fn main() -> std::io::Result<()> {
             scene_data_charts::App::tick,
             scene_data_charts::App::cycle_theme,
             |a: &scene_data_charts::App| a.theme(),
+        )?;
+    }
+
+    // Visual: barcode + ASCII art image.
+    if selected("visual") {
+        run_scene(
+            "visual",
+            70,
+            20,
+            15,
+            90,
+            fps,
+            40,
+            metrics,
+            &fonts,
+            scene_visual::App::new,
+            scene_visual::draw,
+            scene_visual::App::tick,
+            scene_visual::App::cycle_theme,
+            |a: &scene_visual::App| a.theme(),
         )?;
     }
 
