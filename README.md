@@ -2,7 +2,7 @@
 
 [![Rust](https://img.shields.io/badge/rust-edition%202024-orange)](https://www.rust-lang.org/)
 [![ratatui](https://img.shields.io/badge/ratatui-0.30-red)](https://ratatui.rs)
-[![Version](https://img.shields.io/badge/version-0.1.0-green)]()
+[![Version](https://img.shields.io/badge/version-0.2.0-green)]()
 [![License](https://img.shields.io/badge/license-MIT-blue)](#许可证)
 
 **[English](README.en.md)** | 中文
@@ -14,7 +14,7 @@
 ## ✨ 特性
 
 - **八大内置主题** —— Cyberpunk / Fallout / Weyland / DeepSpace / Bloodmoon / Nebula / Arctic / Sentinel,语义化调色板(`accent`/`bg`/`alert`/…),每个主题同时提供原生 `Color` 与基于 `ratatui-style` 的 CSS cascade 样式表。
-- **17 个组件** —— 12 个风格统一的基础组件 + 5 个高感官的特效组件,全部按 ratatui 0.30 的 `Widget` / `StatefulWidget` 标准实现。
+- **32 个组件** —— 11 个风格统一的基础组件 + 5 个高感官特效组件 + 16 个数据图表组件(0.2.0 新增),全部按 ratatui 0.30 的 `Widget` / `StatefulWidget` 标准实现。
 - **运行时合成音效** —— 零音频资产、零版权负担,6 个音效由纯 Rust 波形合成;`rodio` 后端,无设备时静默降级。
 - **Markdown 对话流** —— `CommLog` 的 chat 样式把每条消息渲染成**带框卡片**(user/agent 靠右/靠左区分),正文走 [pulldown-cmark](https://crates.io/crates/pulldown-cmark) 的 CommonMark 渲染(标题 / 粗斜体 / `行内代码` / 代码块 / 列表 / 引用 / 分隔线),逐字流式出现 + 可滚动 + 滚动条,默认开启的 `markdown` feature。
 - **后端无关渲染** —— 库通过 ratatui 的离屏 `Buffer` 渲染,不做任何终端 I/O;`crossterm` 作为正式依赖仅为 `TextInputState::handle_key` 提供按键事件类型(下游用 termion/termwiz 时可改用自己的事件循环)。
@@ -29,7 +29,9 @@
 ```sh
 cargo run -p ratatui-sci-fi --example agent_console  # AI Agent 控制台(开机→登录→对话)
 cargo run -p ratatui-sci-fi --example dashboard      # 综合仪表盘(全组件)
-cargo run -p ratatui-sci-fi --example widget_gallery # 3×3 网格逐组件展示
+cargo run -p ratatui-sci-fi --example widget_gallery # 网格逐组件展示
+cargo run -p ratatui-sci-fi --example charts         # 数据图表组件合集
+cargo run -p ratatui-sci-fi --example button         # Button 形态变体(Pill / Framed)
 cargo run -p ratatui-sci-fi --example matrix_rain    # 全屏数字雨
 ```
 
@@ -59,7 +61,7 @@ cargo run -p ratatui-sci-fi --example matrix_rain    # 全屏数字雨
 
 ![dashboard 示例](screenshot/dashboard.gif)
 
-**`widget_gallery`** —— 16 个组件各自独立展示(5×3 网格)。
+**`widget_gallery`** —— 全部组件各自独立展示(网格布局)。
 
 ![widget gallery 示例](screenshot/widget_gallery.gif)
 
@@ -169,6 +171,10 @@ fn ui(f: &mut Frame, state: &mut SciFiRadarState) {
 | **Fallout** | 荧光绿 `#33FF33` / 纯黑 | 废土、复古大型机、哔哔小子 |
 | **Weyland** | 琥珀金 `#FFB000` / 暗红 | 《异形》工业感太空舱监视器 |
 | **Deep Space** | 深邃蓝 `#0055FF` / 警报红 | 现代星际战舰、极简飞行 HUD |
+| **Bloodmoon** | 血红 `#FF3344` / 余烬橙 `#FF8855` | 战情室、警报控制台 |
+| **Nebula** | 紫罗兰 `#BB66FF` / 冰蓝 `#66EEFF` | 全息霓虹、星云 |
+| **Arctic** | 青绿 `#44EEDD` / 冰白 `#AAEEFF` | 极地科考站、冷冻实验室 |
+| **Sentinel** | 银白 `#E8E8EC` / 钢灰 `#9A9AA6` | 隐身、极简控制台 |
 
 获取主题:`Theme::Cyberpunk.palette()` 返回原生 `Color`;`Theme::Cyberpunk.stylesheet()` 返回基于 ratatui-style 的 `&'static Stylesheet`(CSS cascade,支持 `var(--token)`、类选择器)。两者派生自同一组 RGB,永不漂移。
 
@@ -201,6 +207,26 @@ fn ui(f: &mut Frame, state: &mut SciFiRadarState) {
 | `BootSequence` | 开机逐行跑码 + 偶发屏幕闪烁 |
 | `BiometricChart` | 多轨迹快速波动折线图(心率 / 能量 / 辐射) |
 | `SciFiRadar` | Braille 圆形扫描 + 渐变衰减尾迹 + 可选 blips |
+
+### 数据图表组件(0.2.0 新增)
+| 组件 | 说明 |
+| :--- | :--- |
+| `CommLog` | 对话流 / 聊天 feed,流式逐字出现 + 滚动条 + 可选 Markdown 卡片(Chat 样式) |
+| `Markdown` | CommonMark 渲染(pulldown-cmark):标题 / 粗斜体 / 行内代码 / 代码块 / 列表 / 引用 |
+| `ActivityRings` | 多目标同心进度环(Apple Watch 风格) |
+| `AreaChart` | 单趋势曲线下的填充面积图 |
+| `CandlestickChart` | 动画 OHLC 金融蜡烛图 |
+| `Compass` | 航向 / 方位指示器 |
+| `DonutChart` | 多切片比例环 |
+| `HeatGrid` | 动画 2D 传感器阵列热力图 |
+| `HBarChart` | 水平分类对比条形图 |
+| `RadialBarChart` | 从中心向外辐射的极坐标条 |
+| `RadialGauge` | 圆形反应堆核心表盘仪表 |
+| `ScatterPlot` | 笛卡尔 X/Y 散点云 |
+| `Sparkline` | 紧凑单值趋势迷你线 |
+| `SpectrumBars` | 动画竖向频谱 / 能量分布条 |
+| `StripChart` | 多通道滚动示波器(医疗监护仪风格) |
+| `TreeMap` | 层级 / 扁平比例矩形图 |
 
 **组件约定**:无状态组件实现 `Widget`(`render(self, area, buf)`);有状态组件实现 `StatefulWidget`(`render(self, area, buf, &mut State)`)。动画状态在 `…State` 里,事件循环每帧调 `state.tick()`。每个组件都有 `.theme(Theme)` 构造器。
 
@@ -248,7 +274,7 @@ ratatui-sci-fi/                  # 单 crate(库)
 ├── src/
 │   ├── lib.rs                   # 约定 + `pub use widgets::*` 根级再导出
 │   ├── themes/                  # Palette / Theme / ratatui-style Stylesheet
-│   ├── widgets/                 # 17 个组件(含 CommLog 对话流)
+│   ├── widgets/                 # 32 个组件(基础 / 特效 / 数据图表)
 │   └── audio/                   # 目录(Sound/CATALOG)+ synth + AudioSystem
 └── examples/
     ├── agent_console.rs         # AI Agent 控制台(开机→登录→对话流)
@@ -263,7 +289,7 @@ ratatui-sci-fi/                  # 单 crate(库)
 
 ## 🗺️ 路线图
 
-- [x] 四大主题 + 10 个组件
+- [x] 八大主题 + 32 个组件(基础 / 特效 / 数据图表)
 - [x] 运行时合成音效引擎(`audio` feature)
 - [ ] 更多音色参数化(频率/时长可调)
 - [x] 命名捕获的 demo 动图 / 截图(`screenshot/` + `capture_screenshots` 无头渲染示例,需 ffmpeg)
