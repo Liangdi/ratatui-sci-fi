@@ -14,7 +14,7 @@ English | **[中文](README.md)**
 ## ✨ Features
 
 - **Eight built-in themes** — Cyberpunk / Fallout / Weyland / DeepSpace / Bloodmoon / Nebula / Arctic / Sentinel, with a semantic palette (`accent` / `bg` / `alert` / …). Each theme exposes both native ratatui `Color`s and a `ratatui-style` CSS-cascade stylesheet.
-- **49 widgets** — 20 basic / form / indicator widgets + 10 high-sensory effect widgets + 19 data-chart widgets, all implemented against the ratatui 0.30 `Widget` / `StatefulWidget` model.
+- **54 widgets** — 25 basic / form / indicator / info widgets + 10 high-sensory effect widgets + 19 data-chart widgets, all implemented against the ratatui 0.30 `Widget` / `StatefulWidget` model.
 - **Runtime-synthesized audio** — no audio assets, no licensing burden. Six sound effects are synthesized from pure-Rust waveforms; the `rodio`-backed `AudioSystem` plays them and degrades silently when no device is present.
 - **Markdown chat streams** — `CommLog`'s chat style renders each message as a **bordered card** (user/agent left/right), bodies go through [pulldown-cmark](https://crates.io/crates/pulldown-cmark) CommonMark rendering, with a streaming typewriter reveal + scrollbar; the `markdown` feature is on by default.
 - **Backend-agnostic rendering** — the library renders via ratatui's offscreen `Buffer` and does no terminal I/O; `crossterm` is a dependency only for the `TextInputState::handle_key` event type (apps using termion/termwiz can supply their own event loop).
@@ -189,6 +189,11 @@ Accessing a theme: `Theme::Cyberpunk.palette()` returns native `Color`s; `Theme:
 | `CountdownTimer` | `MM:SS` countdown, ≤10s blinks Alert / ≤30s Warn; app decrements remaining each second |
 | `ProgressBar` | Linear bar: `Some(ratio)` determinate fill / `None` indeterminate scan (vs. segmented EnergyGauge) |
 | `CollapsiblePanel` | Folding panel: collapsed `▸` header / expanded border + `inner(area,&state)` body |
+| `KeyValue` | Key/value property list: `label … value` (Plain / Dotted leaders) |
+| `Stat` | Statistic card: big number (accent) + caption + trend arrow (↑ok / ↓alert / →) |
+| `Timeline` | Event timeline `● time · event` (Plain / Connected node links) |
+| `Table` | Sci-fi table: auto column widths + accent header + zebra rows (a themed skin over native Table) |
+| `BigText` | 5×7 dot-matrix banner (digits / `:`); Glow lit-only / Grid full matrix |
 
 ### Effects
 | Widget | Description |
@@ -274,7 +279,7 @@ ratatui-sci-fi/                  # single crate (library)
 ├── src/
 │   ├── lib.rs                   # conventions + `pub use widgets::*` re-exports
 │   ├── themes/                  # Palette / Theme / ratatui-style Stylesheet
-│   ├── widgets/                 # 49 widgets (basic / form / indicator / effect / chart)
+│   ├── widgets/                 # 54 widgets (basic / form / indicator / info / effect / chart)
 │   └── audio/                   # catalog (Sound/CATALOG) + synth + AudioSystem
 └── examples/
     ├── dashboard.rs             # composite sci-fi dashboard (all widgets + audio)
@@ -293,7 +298,7 @@ ratatui-sci-fi/                  # single crate (library)
 
 ## 🗺️ Roadmap
 
-- [x] Eight themes + 49 widgets (basic / form / indicator / effect / data-chart)
+- [x] Eight themes + 54 widgets (basic / form / indicator / info / effect / data-chart)
 - [x] Runtime-synthesized audio engine (`audio` feature)
 - [ ] Parameterize sound character (tunable frequency/duration)
 - [x] Named demo GIFs / screenshots (`screenshot/` + the headless `capture_screenshots` example; needs ffmpeg)

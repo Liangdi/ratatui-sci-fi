@@ -59,6 +59,9 @@ mod data_viz;
 #[path = "overlay.rs"]
 mod overlay;
 #[allow(dead_code, unused_imports)]
+#[path = "info_display.rs"]
+mod info_display;
+#[allow(dead_code, unused_imports)]
 #[path = "agent_console.rs"]
 mod agent_console;
 
@@ -73,6 +76,7 @@ use hud_effects as scene_hud_effects;
 use indicators as scene_indicators;
 use data_viz as scene_data_viz;
 use overlay as scene_overlay;
+use info_display as scene_info_display;
 
 /// Pixel geometry shared across every frame. `cell_w`/`cell_h` are derived from
 /// the font's own metrics so box-drawing glyphs tile seamlessly.
@@ -622,6 +626,26 @@ fn main() -> std::io::Result<()> {
             scene_overlay::App::tick,
             scene_overlay::App::cycle_theme,
             |a: &scene_overlay::App| a.theme(),
+        )?;
+    }
+
+    // Info display: BigText / Stat / KeyValue / Timeline / Table.
+    if selected("info_display") {
+        run_scene(
+            "info_display",
+            70,
+            24,
+            15,
+            90,
+            fps,
+            40,
+            metrics,
+            &fonts,
+            scene_info_display::App::new,
+            scene_info_display::draw,
+            scene_info_display::App::tick,
+            scene_info_display::App::cycle_theme,
+            |a: &scene_info_display::App| a.theme(),
         )?;
     }
 

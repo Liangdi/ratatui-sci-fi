@@ -12,6 +12,8 @@
 - *(examples)* Add data_viz example showcasing the 3 data-viz widgets
 - *(widgets)* Add ScanlineOverlay / Noise ambient overlay widgets (full-screen CRT pass)
 - *(examples)* Add overlay example showcasing the ambient overlay layer
+- *(widgets)* Add BigText / Stat / KeyValue / Timeline / Table information-display widgets
+- *(examples)* Add info_display example showcasing the 5 information widgets
 
 ## [0.2.0] - 2026-06-15
 
