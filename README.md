@@ -239,6 +239,9 @@ fn ui(f: &mut Frame, state: &mut SciFiRadarState) {
 | `SpectrumBars` | 动画竖向频谱 / 能量分布条 |
 | `StripChart` | 多通道滚动示波器(医疗监护仪风格) |
 | `TreeMap` | 层级 / 扁平比例矩形图 |
+| `Oscilloscope` | Braille 画布滚动波形(正弦 / 方波 / 锯齿 / 三角) |
+| `StarMap` | 闪烁的确定性星图 |
+| `Graph` | 节点 + 边拓扑图(Bresenham 边,Braille 画布) |
 
 **组件约定**:无状态组件实现 `Widget`(`render(self, area, buf)`);有状态组件实现 `StatefulWidget`(`render(self, area, buf, &mut State)`)。动画状态在 `…State` 里,事件循环每帧调 `state.tick()`。每个组件都有 `.theme(Theme)` 构造器。
 

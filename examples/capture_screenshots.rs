@@ -53,6 +53,9 @@ mod hud_effects;
 #[path = "indicators.rs"]
 mod indicators;
 #[allow(dead_code, unused_imports)]
+#[path = "data_viz.rs"]
+mod data_viz;
+#[allow(dead_code, unused_imports)]
 #[path = "agent_console.rs"]
 mod agent_console;
 
@@ -65,6 +68,7 @@ use widget_gallery as scene_widget_gallery;
 use form_controls as scene_form_controls;
 use hud_effects as scene_hud_effects;
 use indicators as scene_indicators;
+use data_viz as scene_data_viz;
 
 /// Pixel geometry shared across every frame. `cell_w`/`cell_h` are derived from
 /// the font's own metrics so box-drawing glyphs tile seamlessly.
@@ -574,6 +578,26 @@ fn main() -> std::io::Result<()> {
             scene_indicators::App::tick,
             scene_indicators::App::cycle_theme,
             |a: &scene_indicators::App| a.theme(),
+        )?;
+    }
+
+    // Data viz: oscilloscope / star map / topology graph (Braille canvas).
+    if selected("data_viz") {
+        run_scene(
+            "data_viz",
+            70,
+            22,
+            15,
+            90,
+            fps,
+            40,
+            metrics,
+            &fonts,
+            scene_data_viz::App::new,
+            scene_data_viz::draw,
+            scene_data_viz::App::tick,
+            scene_data_viz::App::cycle_theme,
+            |a: &scene_data_viz::App| a.theme(),
         )?;
     }
 

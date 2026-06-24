@@ -8,6 +8,8 @@
 - *(examples)* Add hud_effects example showcasing the 3 ambient effects
 - *(widgets)* Add StatusLED / CountdownTimer / CollapsiblePanel / ProgressBar indicator/container widgets
 - *(examples)* Add indicators example showcasing the 4 indicator/container widgets
+- *(widgets)* Add Oscilloscope / StarMap / Graph data-viz widgets (Braille canvas)
+- *(examples)* Add data_viz example showcasing the 3 data-viz widgets
 
 ## [0.2.0] - 2026-06-15
 

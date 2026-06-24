@@ -221,6 +221,9 @@ Accessing a theme: `Theme::Cyberpunk.palette()` returns native `Color`s; `Theme:
 | `SpectrumBars` | Animated vertical bar chart (spectrum / energy distribution) |
 | `StripChart` | Multi-channel rolling oscilloscope (hospital-monitor style) |
 | `TreeMap` | Hierarchical / flat proportional rectangle map |
+| `Oscilloscope` | Scrolling Braille-canvas waveform (sine / square / saw / triangle) |
+| `StarMap` | Twinkling deterministic starfield |
+| `Graph` | Node-and-edge topology diagram (Bresenham edges on a Braille canvas) |
 
 **Widget conventions**: stateless widgets implement `Widget` (`render(self, area, buf)`); stateful widgets implement `StatefulWidget` (`render(self, area, buf, &mut State)`). Animation lives in the `…State` struct, advanced each frame via `state.tick()`. Every widget has a `.theme(Theme)` builder.
 
