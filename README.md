@@ -14,7 +14,7 @@
 ## ✨ 特性
 
 - **八大内置主题** —— Cyberpunk / Fallout / Weyland / DeepSpace / Bloodmoon / Nebula / Arctic / Sentinel,语义化调色板(`accent`/`bg`/`alert`/…),每个主题同时提供原生 `Color` 与基于 `ratatui-style` 的 CSS cascade 样式表。
-- **57 个组件** —— 28 个基础 / 表单 / 指示 / 信息组件 + 10 个高感官特效组件 + 19 个数据图表组件,全部按 ratatui 0.30 的 `Widget` / `StatefulWidget` 标准实现。
+- **59 个组件** —— 30 个基础 / 表单 / 指示 / 信息组件 + 10 个高感官特效组件 + 19 个数据图表组件,全部按 ratatui 0.30 的 `Widget` / `StatefulWidget` 标准实现。
 - **运行时合成音效** —— 零音频资产、零版权负担,6 个音效由纯 Rust 波形合成;`rodio` 后端,无设备时静默降级。
 - **Markdown 对话流** —— `CommLog` 的 chat 样式把每条消息渲染成**带框卡片**(user/agent 靠右/靠左区分),正文走 [pulldown-cmark](https://crates.io/crates/pulldown-cmark) 的 CommonMark 渲染(标题 / 粗斜体 / `行内代码` / 代码块 / 列表 / 引用 / 分隔线),逐字流式出现 + 可滚动 + 滚动条,默认开启的 `markdown` feature。
 - **后端无关渲染** —— 库通过 ratatui 的离屏 `Buffer` 渲染,不做任何终端 I/O;`crossterm` 作为正式依赖仅为 `TextInputState::handle_key` 提供按键事件类型(下游用 termion/termwiz 时可改用自己的事件循环)。
@@ -215,6 +215,8 @@ fn ui(f: &mut Frame, state: &mut SciFiRadarState) {
 | `SignalBars` | 信号强度条 `▁▂▃▄▅`(Ascending 递增 / Equal 等高),前 level 根亮 |
 | `BatteryIndicator` | 电池图标 `[████░░]▐` + 正极头,按 ratio 填充,<0.2 alert / <0.5 warn |
 | `Thermometer` | 垂直温度计,底部球 `●` + 液柱按 ratio 上升(>0.8 alert / <0.2 ok) |
+| `MultiSelectList` | 多选列表,`▸ [✓] item`,`Up/Down` 移光标,`Space` 切换勾选 |
+| `TextArea` | 多行文本编辑,`Char` / `Backspace` / `Enter` / 方向键,闪烁光标(按 char 索引) |
 
 ### 特效组件
 | 组件 | 说明 |
@@ -299,7 +301,7 @@ ratatui-sci-fi/                  # 单 crate(库)
 ├── src/
 │   ├── lib.rs                   # 约定 + `pub use widgets::*` 根级再导出
 │   ├── themes/                  # Palette / Theme / ratatui-style Stylesheet
-│   ├── widgets/                 # 57 个组件(基础 / 表单 / 指示 / 信息 / 特效 / 数据图表)
+│   ├── widgets/                 # 59 个组件(基础 / 表单 / 指示 / 信息 / 特效 / 数据图表)
 │   └── audio/                   # 目录(Sound/CATALOG)+ synth + AudioSystem
 └── examples/
     ├── dashboard.rs             # 综合科幻仪表盘(全组件 + 音效)
@@ -318,7 +320,7 @@ ratatui-sci-fi/                  # 单 crate(库)
 
 ## 🗺️ 路线图
 
-- [x] 八大主题 + 57 个组件(基础 / 表单 / 指示 / 信息 / 特效 / 数据图表)
+- [x] 八大主题 + 59 个组件(基础 / 表单 / 指示 / 信息 / 特效 / 数据图表)
 - [x] 运行时合成音效引擎(`audio` feature)
 - [ ] 更多音色参数化(频率/时长可调)
 - [x] 命名捕获的 demo 动图 / 截图(`screenshot/` + `capture_screenshots` 无头渲染示例,需 ffmpeg)

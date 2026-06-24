@@ -62,6 +62,9 @@ mod overlay;
 #[path = "info_display.rs"]
 mod info_display;
 #[allow(dead_code, unused_imports)]
+#[path = "inputs.rs"]
+mod inputs;
+#[allow(dead_code, unused_imports)]
 #[path = "agent_console.rs"]
 mod agent_console;
 
@@ -77,6 +80,7 @@ use indicators as scene_indicators;
 use data_viz as scene_data_viz;
 use overlay as scene_overlay;
 use info_display as scene_info_display;
+use inputs as scene_inputs;
 
 /// Pixel geometry shared across every frame. `cell_w`/`cell_h` are derived from
 /// the font's own metrics so box-drawing glyphs tile seamlessly.
@@ -646,6 +650,26 @@ fn main() -> std::io::Result<()> {
             scene_info_display::App::tick,
             scene_info_display::App::cycle_theme,
             |a: &scene_info_display::App| a.theme(),
+        )?;
+    }
+
+    // Inputs: multi-select list + multi-line text area.
+    if selected("inputs") {
+        run_scene(
+            "inputs",
+            70,
+            18,
+            15,
+            90,
+            fps,
+            40,
+            metrics,
+            &fonts,
+            scene_inputs::App::new,
+            scene_inputs::draw,
+            scene_inputs::App::tick,
+            scene_inputs::App::cycle_theme,
+            |a: &scene_inputs::App| a.theme(),
         )?;
     }
 

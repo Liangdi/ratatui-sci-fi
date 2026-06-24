@@ -16,6 +16,8 @@
 - *(examples)* Add info_display example showcasing the 5 information widgets
 - *(widgets)* Add SignalBars / BatteryIndicator / Thermometer indicator widgets
 - *(examples)* Extend indicators example with the 3 new indicators
+- *(widgets)* Add MultiSelectList / TextArea multi-row input widgets
+- *(examples)* Add inputs example showcasing the two multi-row inputs
 
 ## [0.2.0] - 2026-06-15
 

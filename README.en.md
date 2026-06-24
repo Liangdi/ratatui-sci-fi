@@ -14,7 +14,7 @@ English | **[中文](README.md)**
 ## ✨ Features
 
 - **Eight built-in themes** — Cyberpunk / Fallout / Weyland / DeepSpace / Bloodmoon / Nebula / Arctic / Sentinel, with a semantic palette (`accent` / `bg` / `alert` / …). Each theme exposes both native ratatui `Color`s and a `ratatui-style` CSS-cascade stylesheet.
-- **57 widgets** — 28 basic / form / indicator / info widgets + 10 high-sensory effect widgets + 19 data-chart widgets, all implemented against the ratatui 0.30 `Widget` / `StatefulWidget` model.
+- **59 widgets** — 30 basic / form / indicator / info widgets + 10 high-sensory effect widgets + 19 data-chart widgets, all implemented against the ratatui 0.30 `Widget` / `StatefulWidget` model.
 - **Runtime-synthesized audio** — no audio assets, no licensing burden. Six sound effects are synthesized from pure-Rust waveforms; the `rodio`-backed `AudioSystem` plays them and degrades silently when no device is present.
 - **Markdown chat streams** — `CommLog`'s chat style renders each message as a **bordered card** (user/agent left/right), bodies go through [pulldown-cmark](https://crates.io/crates/pulldown-cmark) CommonMark rendering, with a streaming typewriter reveal + scrollbar; the `markdown` feature is on by default.
 - **Backend-agnostic rendering** — the library renders via ratatui's offscreen `Buffer` and does no terminal I/O; `crossterm` is a dependency only for the `TextInputState::handle_key` event type (apps using termion/termwiz can supply their own event loop).
@@ -197,6 +197,8 @@ Accessing a theme: `Theme::Cyberpunk.palette()` returns native `Color`s; `Theme:
 | `SignalBars` | Signal-strength bars `▁▂▃▄▅` (Ascending ramp / Equal blocks); first `level` lit |
 | `BatteryIndicator` | Battery icon `[████░░]▐` + terminal nub; ratio-filled (<0.2 alert / <0.5 warn) |
 | `Thermometer` | Vertical thermometer: bulb `●` + column rises with ratio (>0.8 alert / <0.2 ok) |
+| `MultiSelectList` | Multi-select list `▸ [✓] item`; `Up/Down` moves cursor, `Space` toggles |
+| `TextArea` | Multi-line editor; `Char` / `Backspace` / `Enter` / arrows, blinking caret (char-indexed) |
 
 ### Effects
 | Widget | Description |
@@ -282,7 +284,7 @@ ratatui-sci-fi/                  # single crate (library)
 ├── src/
 │   ├── lib.rs                   # conventions + `pub use widgets::*` re-exports
 │   ├── themes/                  # Palette / Theme / ratatui-style Stylesheet
-│   ├── widgets/                 # 57 widgets (basic / form / indicator / info / effect / chart)
+│   ├── widgets/                 # 59 widgets (basic / form / indicator / info / effect / chart)
 │   └── audio/                   # catalog (Sound/CATALOG) + synth + AudioSystem
 └── examples/
     ├── dashboard.rs             # composite sci-fi dashboard (all widgets + audio)
@@ -301,7 +303,7 @@ ratatui-sci-fi/                  # single crate (library)
 
 ## 🗺️ Roadmap
 
-- [x] Eight themes + 57 widgets (basic / form / indicator / info / effect / data-chart)
+- [x] Eight themes + 59 widgets (basic / form / indicator / info / effect / data-chart)
 - [x] Runtime-synthesized audio engine (`audio` feature)
 - [ ] Parameterize sound character (tunable frequency/duration)
 - [x] Named demo GIFs / screenshots (`screenshot/` + the headless `capture_screenshots` example; needs ffmpeg)
