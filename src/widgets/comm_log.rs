@@ -99,6 +99,12 @@ pub struct CommLogMessage {
     /// Chars of `body` currently shown. Equal to `body.chars().count()` once
     /// fully revealed; less while streaming.
     pub revealed: usize,
+    /// Parsed-and-wrapped markdown for the *fully-revealed* body, memoized so
+    /// the chat renderer doesn't re-parse every message every frame. Only
+    /// populated under the `markdown` feature; `None` while streaming or before
+    /// the first chat-mode render.
+    #[cfg(feature = "markdown")]
+    cached_md: Option<MdCache>,
 }
 
 impl CommLogMessage {
@@ -106,14 +112,28 @@ impl CommLogMessage {
     pub fn new(speaker: impl Into<String>, body: impl Into<String>, kind: CommKind) -> Self {
         let body = body.into();
         let revealed = body.chars().count();
-        Self { speaker: speaker.into(), body, kind, revealed }
+        Self {
+            speaker: speaker.into(),
+            body,
+            kind,
+            revealed,
+            #[cfg(feature = "markdown")]
+            cached_md: None,
+        }
     }
 
     /// Same as [`new`](Self::new) but starts hidden (revealed = 0) so it streams
     /// in as [`CommLogState::tick`] advances. Convenience for callers that push
     /// directly without going through [`CommLogState::push_streaming`].
     pub fn streaming(speaker: impl Into<String>, body: impl Into<String>, kind: CommKind) -> Self {
-        Self { speaker: speaker.into(), body: body.into(), kind, revealed: 0 }
+        Self {
+            speaker: speaker.into(),
+            body: body.into(),
+            kind,
+            revealed: 0,
+            #[cfg(feature = "markdown")]
+            cached_md: None,
+        }
     }
 
     /// Total char count of the body.
@@ -151,7 +171,12 @@ pub enum CommStyle {
 /// [`style`](CommLog::style), and whether to render as a scrollable transcript
 /// with a scrollbar ([`CommLog::scrollbar`]). All message state lives in the
 /// companion [`CommLogState`].
-#[derive(Debug, Clone, Copy, Default)]
+/// Default cap on retained [`CommLog`] messages. Old messages are dropped once
+/// this is exceeded, so a long-running transcript can't grow without bound.
+/// Override per-widget with [`CommLog::max_messages`]; `0` means unlimited.
+pub const DEFAULT_MAX_MESSAGES: usize = 4096;
+
+#[derive(Debug, Clone, Copy)]
 pub struct CommLog {
     /// Theme whose [`Palette`](crate::Palette) drives the prefix / body colors.
     /// Defaults to [`Theme::Cyberpunk`].
@@ -166,6 +191,23 @@ pub struct CommLog {
     /// Card layout + markdown bodies ([`CommStyle::Chat`]). Defaults to
     /// [`CommStyle::Plain`].
     pub style: CommStyle,
+    /// Cap on retained messages: once the transcript exceeds this, the oldest
+    /// entries are dropped on the next render. Defaults to
+    /// [`DEFAULT_MAX_MESSAGES`]; `0` disables the cap (unbounded — not
+    /// recommended for long-running feeds).
+    pub max_messages: usize,
+}
+
+impl Default for CommLog {
+    fn default() -> Self {
+        Self {
+            theme: Theme::default(),
+            caret: CaretShape::default(),
+            scrollbar: false,
+            style: CommStyle::default(),
+            max_messages: DEFAULT_MAX_MESSAGES,
+        }
+    }
 }
 
 impl CommLog {
@@ -204,6 +246,19 @@ impl CommLog {
     #[must_use]
     pub fn style(mut self, style: CommStyle) -> Self {
         self.style = style;
+        self
+    }
+
+    /// Cap the number of retained messages. Once the transcript grows past
+    /// `max`, the oldest entries are dropped on the next render (keeping the
+    /// newest). `0` disables the cap entirely (unbounded growth).
+    ///
+    /// Defaults to [`DEFAULT_MAX_MESSAGES`] (`4096`) — enough for a long
+    /// transcript without leaking memory in the agent-console / LLM-chat use
+    /// case this widget targets.
+    #[must_use]
+    pub fn max_messages(mut self, max: usize) -> Self {
+        self.max_messages = max;
         self
     }
 }
@@ -299,6 +354,20 @@ impl CommLogState {
         self.scroll = 0;
     }
 
+    /// Enforce a cap on retained messages, dropping the oldest until at most
+    /// `max` remain. `max == 0` is a no-op (unlimited). The widget calls this
+    /// each render using [`CommLog::max_messages`], but it's `pub` so apps that
+    /// push many messages between frames can trim eagerly.
+    pub fn truncate(&mut self, max: usize) {
+        if max == 0 {
+            return;
+        }
+        let overflow = self.messages.len().saturating_sub(max);
+        if overflow > 0 {
+            self.messages.drain(..overflow);
+        }
+    }
+
     /// Advance one frame: unveil up to `chars_per_tick` body chars of the
     /// streaming tail message and step the caret blink clock.
     pub fn tick(&mut self, chars_per_tick: usize) {
@@ -324,6 +393,10 @@ impl StatefulWidget for CommLog {
     type State = CommLogState;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
+        // Apply the configured message cap every frame so a long-running
+        // transcript (the agent-console / LLM-chat use case) can't leak memory.
+        state.truncate(self.max_messages);
+
         if area.width == 0 || area.height == 0 || state.messages.is_empty() {
             return;
         }
@@ -442,6 +515,33 @@ impl StatefulWidget for CommLog {
     }
 }
 
+/// Cached markdown render of a completed message body at a given width.
+///
+/// The pulldown-cmark parse is the single most expensive thing the chat
+/// renderer does, so once a message is fully revealed we cache its parsed
+/// `Vec<Line>` keyed by card-body width and reuse it on every subsequent frame
+/// instead of re-parsing. Streaming (still-revealing) messages are parsed fresh
+/// each frame since their visible prefix changes — but only the single tail
+/// message ever streams at once, so the cost is bounded.
+#[cfg(feature = "markdown")]
+#[derive(Debug, Clone)]
+struct MdCache {
+    /// The `body_w` the cached `lines` were wrapped to; a mismatch invalidates.
+    width: u16,
+    lines: Vec<ratatui::text::Line<'static>>,
+}
+
+/// Card inner-body width for `kind` at a given content width (mirrors the
+/// per-card geometry in [`CommLog::render_chat`]).
+#[cfg(feature = "markdown")]
+fn card_body_width(kind: CommKind, content_w: u16) -> u16 {
+    let card_w = match kind {
+        CommKind::User => (((content_w as usize) * 7 / 10).max(20) as u16).min(content_w),
+        _ => content_w,
+    };
+    card_w.saturating_sub(2).max(1)
+}
+
 #[cfg(feature = "markdown")]
 impl CommLog {
     /// Chat style: each message is a bordered card with a markdown body. User
@@ -456,19 +556,53 @@ impl CommLog {
         let content_w = if track_present { area.width - 1 } else { area.width };
         let view_h = area.height as usize;
 
+        // Refresh the markdown cache for fully-revealed messages at the current
+        // card-body width. The parse is the hot path; caching it means each
+        // completed message is parsed once instead of every frame. The single
+        // streaming tail is parsed fresh below (its visible prefix changes).
+        for msg in state.messages.iter_mut() {
+            let total = msg.body.chars().count();
+            let done = msg.revealed >= total;
+            if done {
+                let body_w = card_body_width(msg.kind, content_w);
+                let stale = match msg.cached_md.as_ref() {
+                    Some(c) => c.width != body_w,
+                    None => true,
+                };
+                if stale {
+                    let lines = crate::widgets::markdown::markdown_to_lines(
+                        &msg.body, self.theme, body_w,
+                    );
+                    msg.cached_md = Some(MdCache { width: body_w, lines });
+                }
+            }
+        }
+
         // Pre-compute each message's card geometry + wrapped markdown body.
         let mut cards: Vec<ChatCard> = Vec::new();
         let mut y = 0usize;
         for msg in &state.messages {
             let total = msg.body.chars().count();
-            let shown: String = msg.body.chars().take(msg.revealed.min(total)).collect();
             let streaming = msg.revealed < total;
             let card_w = match msg.kind {
                 CommKind::User => (((content_w as usize) * 7 / 10).max(20) as u16).min(content_w),
                 _ => content_w,
             };
             let body_w = card_w.saturating_sub(2).max(1);
-            let mut body = crate::widgets::markdown::markdown_to_lines(&shown, self.theme, body_w);
+            // Completed messages reuse the cached parse; the streaming tail is
+            // parsed from its current visible prefix each frame.
+            let mut body = if streaming {
+                let shown: String = msg.body.chars().take(msg.revealed.min(total)).collect();
+                crate::widgets::markdown::markdown_to_lines(&shown, self.theme, body_w)
+            } else {
+                msg.cached_md
+                    .as_ref()
+                    .filter(|c| c.width == body_w)
+                    .map(|c| c.lines.clone())
+                    .unwrap_or_else(|| {
+                        crate::widgets::markdown::markdown_to_lines(&msg.body, self.theme, body_w)
+                    })
+            };
             if streaming && caret_visible
                 && let Some(last) = body.last_mut()
             {
@@ -662,7 +796,7 @@ fn write_segments(buf: &mut Buffer, x0: u16, y: u16, right: u16, segs: &[(String
             if x >= right {
                 return;
             }
-            buf[(x, y)].set_symbol(ch.to_string().as_str()).set_style(*style);
+            buf[(x, y)].set_char(ch).set_style(*style);
             x += 1;
         }
     }
@@ -808,6 +942,88 @@ mod tests {
         let mut s = CommLogState { messages: Vec::new(), blink: u64::MAX, scroll: 0 };
         s.tick(1);
         assert_eq!(s.blink, 0);
+    }
+
+    // ── message cap (unbounded-growth guard) ─────────────────────────────────
+
+    #[test]
+    fn truncate_drops_oldest_keeps_newest() {
+        let mut s = CommLogState::new();
+        for i in 0..5u32 {
+            s.push(CommLogMessage::new("A", format!("msg {i}"), CommKind::Agent));
+        }
+        s.truncate(3);
+        assert_eq!(s.messages.len(), 3, "cap must drop the 2 oldest");
+        // Newest three are indices 2,3,4 -> "msg 2", "msg 3", "msg 4".
+        assert_eq!(s.messages[0].body, "msg 2");
+        assert_eq!(s.messages[2].body, "msg 4", "newest must be retained");
+    }
+
+    #[test]
+    fn truncate_zero_is_unlimited() {
+        let mut s = CommLogState::new();
+        for _ in 0..10 {
+            s.push(CommLogMessage::new("A", "x", CommKind::Agent));
+        }
+        s.truncate(0);
+        assert_eq!(s.messages.len(), 10, "max == 0 must not drop anything");
+    }
+
+    #[test]
+    fn render_enforces_max_messages_cap() {
+        let mut s = CommLogState::new();
+        for i in 0..6u32 {
+            s.push(CommLogMessage::new("A", format!("body {i}"), CommKind::Agent));
+        }
+        let mut buf = Buffer::empty(Rect::new(0, 0, W, H));
+        // Cap at 3: render must trim the transcript to the newest 3 messages.
+        CommLog::new()
+            .max_messages(3)
+            .render(Rect::new(0, 0, W, H), &mut buf, &mut s);
+        assert_eq!(s.messages.len(), 3, "render must apply the cap");
+        assert_eq!(s.messages[2].body, "body 5", "newest message survives");
+    }
+
+    // ── chat markdown cache (parse-once optimization) ────────────────────────
+
+    #[cfg(feature = "markdown")]
+    #[test]
+    fn chat_caches_completed_message_markdown() {
+        let mut s = CommLogState::new();
+        s.push(CommLogMessage::new("A", "**bold** body text here", CommKind::Agent));
+        let area = Rect::new(0, 0, 40, 10);
+        let mut buf = Buffer::empty(area);
+        let widget = CommLog::new().style(CommStyle::Chat);
+        // First render: completed message → cache populated at the card width.
+        widget.render(area, &mut buf, &mut s);
+        let cache = s.messages[0]
+            .cached_md
+            .as_ref()
+            .expect("completed message markdown should be cached after render");
+        let w0 = cache.width;
+        let lines0 = cache.lines.len();
+        assert!(lines0 > 0);
+        // Second render at the same width: cache is reused, not reparsed.
+        widget.render(area, &mut buf, &mut s);
+        let cache2 = s.messages[0].cached_md.as_ref().unwrap();
+        assert_eq!(cache2.width, w0, "width unchanged → cache reused");
+        assert_eq!(cache2.lines.len(), lines0, "cached line count must be stable");
+    }
+
+    #[cfg(feature = "markdown")]
+    #[test]
+    fn chat_streaming_message_is_not_cached_until_revealed() {
+        let mut s = CommLogState::new();
+        s.push_streaming(CommLogMessage::new("A", "still typing this out", CommKind::Agent));
+        let area = Rect::new(0, 0, 40, 10);
+        let mut buf = Buffer::empty(area);
+        CommLog::new().style(CommStyle::Chat).render(area, &mut buf, &mut s);
+        // Streaming tail is parsed fresh each frame; its cache stays empty.
+        assert!(s.messages[0].cached_md.is_none(), "streaming message must not be cached");
+        // Reveal it fully, render again → now it's cached.
+        s.finish_streaming();
+        CommLog::new().style(CommStyle::Chat).render(area, &mut buf, &mut s);
+        assert!(s.messages[0].cached_md.is_some(), "completed message must be cached");
     }
 
     // ── scrollbar / scroll mode ──────────────────────────────────────────────
