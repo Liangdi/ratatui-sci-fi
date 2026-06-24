@@ -28,8 +28,9 @@ use ratatui::{
 };
 use ratatui_sci_fi::{
     AlertPopup, AlertPopupState, BiometricChart, BiometricChartState, Blip, BootSequence,
-    BootSequenceState, Divider, EnergyGauge, GlitchText, GlitchTextState, Level, Panel, ScanList,
-    ScanListState, SciFiRadar, SciFiRadarState, Theme, Value,
+    BootSequenceState, DigitalClock, DigitalClockState, Divider, EnergyGauge, GlitchText,
+    GlitchTextState, Level, Panel, ProgressBar, ProgressBarState, ScanList, ScanListState,
+    SciFiRadar, SciFiRadarState, SignalBars, StatusLED, Theme, Value,
 };
 use ratatui_sci_fi::audio::Sound;
 
@@ -116,6 +117,8 @@ pub struct App {
     log: ScanListState,
     title: GlitchTextState,
     boot: BootSequenceState,
+    clock: DigitalClockState,
+    progress: ProgressBarState,
     alert_state: AlertPopupState,
     alert_visible: bool,
     sfx: Sfx,
@@ -135,6 +138,8 @@ impl App {
             log: ScanListState::default(),
             title: GlitchTextState::default(),
             boot: BootSequenceState::default(),
+            clock: DigitalClockState::new(),
+            progress: ProgressBarState::new(),
             alert_state: AlertPopupState::default(),
             alert_visible: false,
             sfx: Sfx::new(),
@@ -167,6 +172,8 @@ impl App {
                 self.sfx.play(Sound::RadarEcho);
             }
         }
+        self.clock.tick();
+        self.progress.tick();
         self.log.tick();
         if self.alert_visible {
             // Drive the popup's show-flash blink.
@@ -236,17 +243,21 @@ pub fn draw(f: &mut ratatui::Frame<'_>, app: &mut App) {
     }
 
     let outer = Layout::vertical([
-        Constraint::Length(3),
-        Constraint::Min(1),
-        Constraint::Length(1),
+        Constraint::Length(3), // header
+        Constraint::Min(1),    // body
+        Constraint::Length(3), // status strip
+        Constraint::Length(1), // footer
     ])
     .split(area);
 
-    // Header: glitching title.
+    // Header: glitching title (left) + live digital clock (right).
+    let header = Layout::horizontal([Constraint::Min(1), Constraint::Length(12)]).split(outer[0]);
     let title = GlitchText::new("▶ SCI-FI HUD // ratatui-sci-fi ◀")
         .intensity(0.15)
         .theme(theme);
-    f.render_stateful_widget(title, outer[0], &mut app.title);
+    f.render_stateful_widget(title, header[0], &mut app.title);
+    let (hh, mm, ss) = utc_hms();
+    f.render_stateful_widget(DigitalClock::new(hh, mm, ss).theme(theme), header[1], &mut app.clock);
 
     // Body: telemetry | radar | (vitals + event log).
     let body = Layout::horizontal([
@@ -276,11 +287,14 @@ pub fn draw(f: &mut ratatui::Frame<'_>, app: &mut App) {
     let log = ScanList::new(LOG_ITEMS.iter().copied()).theme(theme);
     f.render_stateful_widget(log, right[2], &mut app.log);
 
+    // Status strip: link LED + signal bars + a cycling progress bar.
+    status_row(f, theme, outer[2], app.frame, &mut app.progress);
+
     // Footer: hints.
     f.render_widget(
         Paragraph::new(" [↑↓] list   [t] theme   [a] alert   [q] exit")
             .style(Style::new().fg(theme.palette().muted.color())),
-        outer[2],
+        outer[3],
     );
 
     // Alert popup overlay. The siren already fired in the key handler the
@@ -308,6 +322,38 @@ fn centered_rect(percent_x: u16, height: u16, area: Rect) -> Rect {
         Constraint::Percentage(pad),
     ])
     .split(vert[1])[1]
+}
+
+/// Bottom status strip: a link LED, signal bars, and a cycling progress bar.
+fn status_row(
+    f: &mut ratatui::Frame<'_>,
+    theme: Theme,
+    area: Rect,
+    frame: u64,
+    progress: &mut ProgressBarState,
+) {
+    let cols = Layout::horizontal([
+        Constraint::Length(16),
+        Constraint::Length(10),
+        Constraint::Min(16),
+    ])
+    .split(area);
+    f.render_widget(StatusLED::new("LINK").level(Level::Ok).theme(theme), cols[0]);
+    let signal = ((frame / 12) % 6) as u8;
+    f.render_widget(SignalBars::new(signal).bars(5).theme(theme), cols[1]);
+    let ratio = (frame % 100) as f32 / 100.0;
+    f.render_stateful_widget(ProgressBar::new(Some(ratio)).theme(theme), cols[2], progress);
+}
+
+/// Current UTC wall-clock as (hours, minutes, seconds).
+fn utc_hms() -> (u32, u32, u32) {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    let secs = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    let day = secs % 86400;
+    ((day / 3600) as u32, ((day % 3600) / 60) as u32, (day % 60) as u32)
 }
 
 /// Left panel: a `Panel` HUD frame wrapping four oscillating `EnergyGauge`s,
