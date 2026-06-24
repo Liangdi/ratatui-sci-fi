@@ -71,6 +71,9 @@ mod navigation;
 #[path = "feedback.rs"]
 mod feedback;
 #[allow(dead_code, unused_imports)]
+#[path = "data_charts.rs"]
+mod data_charts;
+#[allow(dead_code, unused_imports)]
 #[path = "agent_console.rs"]
 mod agent_console;
 
@@ -89,6 +92,7 @@ use info_display as scene_info_display;
 use inputs as scene_inputs;
 use navigation as scene_navigation;
 use feedback as scene_feedback;
+use data_charts as scene_data_charts;
 
 /// Pixel geometry shared across every frame. `cell_w`/`cell_h` are derived from
 /// the font's own metrics so box-drawing glyphs tile seamlessly.
@@ -718,6 +722,26 @@ fn main() -> std::io::Result<()> {
             scene_feedback::App::tick,
             scene_feedback::App::cycle_theme,
             |a: &scene_feedback::App| a.theme(),
+        )?;
+    }
+
+    // Data charts: pie / speedometer / line.
+    if selected("data_charts") {
+        run_scene(
+            "data_charts",
+            70,
+            24,
+            15,
+            90,
+            fps,
+            40,
+            metrics,
+            &fonts,
+            scene_data_charts::App::new,
+            scene_data_charts::draw,
+            scene_data_charts::App::tick,
+            scene_data_charts::App::cycle_theme,
+            |a: &scene_data_charts::App| a.theme(),
         )?;
     }
 

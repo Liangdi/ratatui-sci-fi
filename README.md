@@ -14,7 +14,7 @@
 ## ✨ 特性
 
 - **八大内置主题** —— Cyberpunk / Fallout / Weyland / DeepSpace / Bloodmoon / Nebula / Arctic / Sentinel,语义化调色板(`accent`/`bg`/`alert`/…),每个主题同时提供原生 `Color` 与基于 `ratatui-style` 的 CSS cascade 样式表。
-- **65 个组件** —— 36 个基础 / 表单 / 指示 / 信息 / 导航 / 反馈组件 + 10 个高感官特效组件 + 19 个数据图表组件,全部按 ratatui 0.30 的 `Widget` / `StatefulWidget` 标准实现。
+- **68 个组件** —— 36 个基础 / 表单 / 指示 / 信息 / 导航 / 反馈组件 + 10 个高感官特效组件 + 22 个数据图表组件,全部按 ratatui 0.30 的 `Widget` / `StatefulWidget` 标准实现。
 - **运行时合成音效** —— 零音频资产、零版权负担,6 个音效由纯 Rust 波形合成;`rodio` 后端,无设备时静默降级。
 - **Markdown 对话流** —— `CommLog` 的 chat 样式把每条消息渲染成**带框卡片**(user/agent 靠右/靠左区分),正文走 [pulldown-cmark](https://crates.io/crates/pulldown-cmark) 的 CommonMark 渲染(标题 / 粗斜体 / `行内代码` / 代码块 / 列表 / 引用 / 分隔线),逐字流式出现 + 可滚动 + 滚动条,默认开启的 `markdown` feature。
 - **后端无关渲染** —— 库通过 ratatui 的离屏 `Buffer` 渲染,不做任何终端 I/O;`crossterm` 作为正式依赖仅为 `TextInputState::handle_key` 提供按键事件类型(下游用 termion/termwiz 时可改用自己的事件循环)。
@@ -260,6 +260,9 @@ fn ui(f: &mut Frame, state: &mut SciFiRadarState) {
 | `Oscilloscope` | Braille 画布滚动波形(正弦 / 方波 / 锯齿 / 三角) |
 | `StarMap` | 闪烁的确定性星图 |
 | `Graph` | 节点 + 边拓扑图(Bresenham 边,Braille 画布) |
+| `PieChart` | 实心饼图,切片按比例 + 极角归属,色循环 accent/accent2/ok/warn/alert |
+| `Speedometer` | 半圆指针仪表,180° 弧 + 指针按 value 角度(Braille) |
+| `LineChart` | 带坐标轴(`│─└`)的折线图,Braille 连线(单 series) |
 
 **组件约定**:无状态组件实现 `Widget`(`render(self, area, buf)`);有状态组件实现 `StatefulWidget`(`render(self, area, buf, &mut State)`)。动画状态在 `…State` 里,事件循环每帧调 `state.tick()`。每个组件都有 `.theme(Theme)` 构造器。
 
@@ -307,7 +310,7 @@ ratatui-sci-fi/                  # 单 crate(库)
 ├── src/
 │   ├── lib.rs                   # 约定 + `pub use widgets::*` 根级再导出
 │   ├── themes/                  # Palette / Theme / ratatui-style Stylesheet
-│   ├── widgets/                 # 65 个组件(基础 / 表单 / 指示 / 信息 / 导航 / 反馈 / 特效 / 数据图表)
+│   ├── widgets/                 # 68 个组件(基础 / 表单 / 指示 / 信息 / 导航 / 反馈 / 特效 / 数据图表)
 │   └── audio/                   # 目录(Sound/CATALOG)+ synth + AudioSystem
 └── examples/
     ├── dashboard.rs             # 综合科幻仪表盘(全组件 + 音效)
@@ -326,7 +329,7 @@ ratatui-sci-fi/                  # 单 crate(库)
 
 ## 🗺️ 路线图
 
-- [x] 八大主题 + 65 个组件(基础 / 表单 / 指示 / 信息 / 导航 / 反馈 / 特效 / 数据图表)
+- [x] 八大主题 + 68 个组件(基础 / 表单 / 指示 / 信息 / 导航 / 反馈 / 特效 / 数据图表)
 - [x] 运行时合成音效引擎(`audio` feature)
 - [ ] 更多音色参数化(频率/时长可调)
 - [x] 命名捕获的 demo 动图 / 截图(`screenshot/` + `capture_screenshots` 无头渲染示例,需 ffmpeg)

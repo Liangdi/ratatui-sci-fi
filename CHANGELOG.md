@@ -22,6 +22,8 @@
 - *(examples)* Add navigation example showcasing the three navigation widgets
 - *(widgets)* Add Badge / Tooltip / Toast feedback widgets
 - *(examples)* Add feedback example showcasing the three feedback widgets
+- *(widgets)* Add PieChart / Speedometer / LineChart data-viz widgets
+- *(examples)* Add data_charts example showcasing the three
 
 ## [0.2.0] - 2026-06-15
 
