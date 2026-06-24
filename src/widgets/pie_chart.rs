@@ -24,12 +24,23 @@ use ratatui::{buffer::Buffer, layout::Rect, style::Style, widgets::Widget};
 
 use crate::Theme;
 
-/// Visual form of a [`PieChart`]. (Reserved for future slice-gap variants.)
+/// Visual form of a [`PieChart`].
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum PieShape {
     /// Solid slices edge-to-edge — the default.
     #[default]
     Filled,
+    /// A thin gap between slices (segmented look).
+    Gapped,
+}
+
+/// Angular half-width (radians) of the gap drawn by [`PieShape::Gapped`].
+const GAP: f32 = 0.22;
+
+/// Shortest angular distance between two angles in `[0, TAU)`.
+fn angle_distance(a: f32, b: f32) -> f32 {
+    let d = (a - b).abs();
+    d.min(TAU - d)
 }
 
 /// A sci-fi pie chart.
@@ -118,6 +129,12 @@ impl Widget for PieChart {
                 if a < 0.0 {
                     a += TAU;
                 }
+                // Gapped: leave a seam near each slice boundary.
+                if matches!(self.shape, PieShape::Gapped)
+                    && bounds.iter().any(|&b| angle_distance(a, b) < GAP)
+                {
+                    continue;
+                }
                 let si = bounds.iter().position(|&b| a < b).unwrap_or(bounds.len() - 1);
                 let color = colors[si % colors.len()];
                 buf[(area.x + col, area.y + row)].set_char('█').set_style(Style::new().fg(color));
@@ -199,5 +216,18 @@ mod tests {
         let mut buf = Buffer::empty(Rect::new(0, 0, 0, 0));
         PieChart::new([1.0]).render(Rect::new(0, 0, 0, 0), &mut buf);
         assert_eq!(*buf.area(), Rect::new(0, 0, 0, 0));
+    }
+
+    #[test]
+    fn gapped_has_fewer_cells_than_filled() {
+        // The seam gaps remove some cells that Filled would light.
+        let mut filled = Buffer::empty(Rect::new(0, 0, W, H));
+        PieChart::new([1.0, 1.0, 1.0, 1.0]).theme(Theme::Cyberpunk).render(Rect::new(0, 0, W, H), &mut filled);
+        let mut gapped = Buffer::empty(Rect::new(0, 0, W, H));
+        PieChart::new([1.0, 1.0, 1.0, 1.0])
+            .shape(PieShape::Gapped)
+            .theme(Theme::Cyberpunk)
+            .render(Rect::new(0, 0, W, H), &mut gapped);
+        assert!(filled_count(&gapped) < filled_count(&filled), "Gapped lights fewer cells");
     }
 }

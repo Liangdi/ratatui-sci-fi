@@ -40,6 +40,8 @@ pub enum GraphShape {
     Dot,
     /// A 5-pixel cross (`+`) per node.
     Cross,
+    /// A 5-pixel diamond (`×`) per node (diagonal neighbors).
+    Diamond,
 }
 
 /// A sci-fi network topology graph.
@@ -131,12 +133,22 @@ impl Widget for Graph {
         // Draw nodes.
         for &(x, y) in &node_px {
             set_pixel(&mut lit_node, pw, ph, x, y);
-            if matches!(self.shape, GraphShape::Cross) {
-                // 4-neighborhood cross.
-                set_pixel(&mut lit_node, pw, ph, x + 1, y);
-                set_pixel(&mut lit_node, pw, ph, x - 1, y);
-                set_pixel(&mut lit_node, pw, ph, x, y + 1);
-                set_pixel(&mut lit_node, pw, ph, x, y - 1);
+            match self.shape {
+                GraphShape::Cross => {
+                    // 4-neighborhood cross.
+                    set_pixel(&mut lit_node, pw, ph, x + 1, y);
+                    set_pixel(&mut lit_node, pw, ph, x - 1, y);
+                    set_pixel(&mut lit_node, pw, ph, x, y + 1);
+                    set_pixel(&mut lit_node, pw, ph, x, y - 1);
+                }
+                GraphShape::Diamond => {
+                    // 4 diagonals.
+                    set_pixel(&mut lit_node, pw, ph, x + 1, y + 1);
+                    set_pixel(&mut lit_node, pw, ph, x - 1, y + 1);
+                    set_pixel(&mut lit_node, pw, ph, x + 1, y - 1);
+                    set_pixel(&mut lit_node, pw, ph, x - 1, y - 1);
+                }
+                GraphShape::Dot => {}
             }
         }
 
@@ -274,6 +286,14 @@ mod tests {
         let dot = render(&[(0.5, 0.5)], &[], GraphShape::Dot, Theme::Cyberpunk);
         let cross = render(&[(0.5, 0.5)], &[], GraphShape::Cross, Theme::Cyberpunk);
         assert!(lit_count(&cross) >= lit_count(&dot), "Cross ≥ Dot lit cells");
+    }
+
+    #[test]
+    fn diamond_shape_lights_more_than_dot() {
+        // Diamond (5 diagonal pixels) also lights more than Dot.
+        let dot = render(&[(0.5, 0.5)], &[], GraphShape::Dot, Theme::Cyberpunk);
+        let diamond = render(&[(0.5, 0.5)], &[], GraphShape::Diamond, Theme::Cyberpunk);
+        assert!(lit_count(&diamond) > lit_count(&dot), "Diamond > Dot lit cells");
     }
 
     #[test]
